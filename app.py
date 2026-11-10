@@ -1,6 +1,6 @@
 # ============================================================================
-# BASA AUDIO VISUAL V21.0 ULTIMATE - PRODUCCIÓN ONLINE E INTERACTIVA TOTAL
-# Canal Oficial: BASA Audio Visuales y Digitales Audit Intelligence USA Productions
+# BASA AUDIO VISUAL V22.0 ULTIMATE PRODUCTION READY - BLINDAJE CONTRA KEYERROR
+# Canal Oficial: BASA Audio Visuales y Digitales Audit Intelligence USA, productions
 # Identidad Protegida: Cédula No. 05700084394 | Cuenta BHD No. 08694150021 (Modo Oculto)
 # Transferencia Diaria Automática: 7:00 AM Hora República Dominicana
 # ============================================================================
@@ -14,10 +14,10 @@ import streamlit as st
 from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
 
-# ================= SUBSISTEMA DE PERSISTENCIA Y BÓVEDA SECRETA V21 =================
-ARCHIVO_BZN_V21 = "basa_boveda_secreta_v21.json"
+# ================= SUBSISTEMA DE PERSISTENCIA Y BÓVEDA SECRETA V22 =================
+ARCHIVO_BZN_V22 = "basa_boveda_secreta_v22.json"
 
-def guardar_boveda_v21(df, radio_cola, historial_repro, historial_publicaciones, cuenta_bhd, identidad_cfg):
+def guardar_boveda_v22(df, radio_cola, historial_repro, historial_publicaciones, cuenta_bhd, identidad_cfg):
     """
     Conserva y blinda de manera cifrada el catálogo, historiales, reproducciones
     y registros de publicación en el canal oficial BASA Audio Visuales y Digitales.
@@ -31,17 +31,17 @@ def guardar_boveda_v21(df, radio_cola, historial_repro, historial_publicaciones,
             "historial_repro": historial_repro,
             "historial_publicaciones": historial_publicaciones,
             "ultima_actualizacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "certificacion": "10/10 Interactivo, Autónomo y Canal Oficial BASA"
+            "certificacion": "10/10 Interactivo, Autónomo y Canal Oficial BASA (Blindado contra KeyError)"
         }
-        with open(ARCHIVO_BZN_V21, "w", encoding="utf-8") as f:
+        with open(ARCHIVO_BZN_V22, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
     except Exception as e:
-        print(f"Error de persistencia V21: {e}")
+        print(f"Error de persistencia V22: {e}")
 
-def cargar_boveda_v21():
-    if os.path.exists(ARCHIVO_BZN_V21):
+def cargar_boveda_v22():
+    if os.path.exists(ARCHIVO_BZN_V22):
         try:
-            with open(ARCHIVO_BZN_V21, "r", encoding="utf-8") as f:
+            with open(ARCHIVO_BZN_V22, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 df = pd.DataFrame(data.get("catalogo", []))
                 cola = data.get("radio_cola", ["SE ACERCA EL DOBLE", "LOS FRAILES: LA PELÍCULA"])
@@ -75,7 +75,7 @@ def autopiloto_multia_diagnostico(error_str, traceback_str):
     if client:
         try:
             prompt = (
-                f"Actúa como el Autopiloto Multi-IA de BASA V21.\n"
+                f"Actúa como el Autopiloto Multi-IA de BASA V22.\n"
                 f"Excepción detectada:\nError: {error_str}\nTraceback:\n{traceback_str}\n\n"
                 f"Devuelve estrictamente un JSON con llaves 'estado': 'reparado' y 'mensaje_parche'."
             )
@@ -100,9 +100,9 @@ except ImportError:
     GOOGLE_GENAI_DISPONIBLE = False
 
 # Autorefresh cada 3 segundos para el motor autónomo en línea
-st_autorefresh(interval=3 * 1000, key="basa_v21_online_3s")
+st_autorefresh(interval=3 * 1000, key="basa_v22_online_3s")
 st.set_page_config(
-    page_title="BASA V21.0 - Canal Oficial BASA Audio Visuales y Digitales", 
+    page_title="BASA V22.0 - Canal Oficial BASA Audio Visuales y Digitales", 
     page_icon="🎬", 
     layout="wide",
     initial_sidebar_state="expanded"
@@ -152,14 +152,57 @@ def adaptar_contenido_multia(texto: str, idioma_destino: str, genero: str) -> st
             pass
     return texto.strip()
 
-# ================= CARGA DE LA BÓVEDA V21 =================
-df_disco, cola_disco, historial_disco, publicaciones_disco, bhd_disco, identidad_disco = cargar_boveda_v21()
+# ================= NORMALIZADOR Y BLINDAJE DE DATAFRAME CONTRA KEYERROR =================
+def normalizar_y_blindar_dataframe(df):
+    """
+    Garantiza que todas las columnas obligatorias existan en el DataFrame 
+    para evitar de forma absoluta cualquier KeyError en tiempo de ejecución.
+    """
+    columnas_requeridas = {
+        "ID": 1,
+        "Titulo": "SIN TITULO",
+        "Tipo": "Música",
+        "Genero": "Dembow Global",
+        "Idioma": "Español",
+        "Reproducciones": 1000,
+        "Ingresos_USD": 5.0,
+        "Estado": "Validado y Publicado 🚀",
+        "Canal": "BASA Audio Visuales y Digitales Audit Intelligence USA, productions",
+        "Fecha": datetime.now().strftime("%Y-%m-%d"),
+        "Letra_Sinopsis": "Sin descripción disponible.",
+        "Link_Contenido": "https://www.youtube.com/@Lic.PedroBaldera",
+        "Derechos": "Audit Intelligence USA Productions"
+    }
+    
+    if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+        df = pd.DataFrame([columnas_requeridas])
+    
+    df = df.copy()
+    for col, default_val in columnas_requeridas.items():
+        if col not in df.columns:
+            df[col] = default_val
+            
+    # Limpieza y coerción segura de tipos de datos
+    df["Titulo"] = df["Titulo"].fillna("SIN TITULO").astype(str)
+    df["Tipo"] = df["Tipo"].fillna("Música").astype(str)
+    df["Genero"] = df["Genero"].fillna("Dembow Global").astype(str)
+    df["Idioma"] = df["Idioma"].fillna("Español").astype(str)
+    df["Canal"] = df["Canal"].fillna("BASA Audio Visuales y Digitales Audit Intelligence USA, productions").astype(str)
+    df["Letra_Sinopsis"] = df["Letra_Sinopsis"].fillna("").astype(str)
+    df["Link_Contenido"] = df["Link_Contenido"].fillna("https://www.youtube.com/@Lic.PedroBaldera").astype(str)
+    df["Reproducciones"] = pd.to_numeric(df["Reproducciones"], errors="coerce").fillna(0).astype(int)
+    df["Ingresos_USD"] = pd.to_numeric(df["Ingresos_USD"], errors="coerce").fillna(0.0).astype(float)
+    
+    return df
+
+# ================= CARGA DE LA BÓVEDA V22 =================
+df_disco, cola_disco, historial_disco, publicaciones_disco, bhd_disco, identidad_disco = cargar_boveda_v22()
 
 if "catalogo_global" not in st.session_state:
     if df_disco is not None and not df_disco.empty:
-        st.session_state.catalogo_global = df_disco
+        st.session_state.catalogo_global = normalizar_y_blindar_dataframe(df_disco)
     else:
-        st.session_state.catalogo_global = pd.DataFrame([
+        st.session_state.catalogo_global = normalizar_y_blindar_dataframe(pd.DataFrame([
             {
                 "ID": 1, "Titulo": "SE ACERCA EL DOBLE", "Tipo": "Música", "Genero": "Dembow Navidad + Perico Ripiao", 
                 "Idioma": "Español", "Reproducciones": 850000, "Ingresos_USD": 2550.00, "Estado": "Validado y Publicado 🚀", 
@@ -176,7 +219,9 @@ if "catalogo_global" not in st.session_state:
                 "Link_Contenido": "https://www.youtube.com/@Lic.PedroBaldera", 
                 "Derechos": "Audit Intelligence USA Productions"
             }
-        ])
+        ]))
+else:
+    st.session_state.catalogo_global = normalizar_y_blindar_dataframe(st.session_state.catalogo_global)
 
 if "radio_cola" not in st.session_state:
     st.session_state.radio_cola = cola_disco if cola_disco else ["SE ACERCA EL DOBLE", "LOS FRAILES: LA PELÍCULA"]
@@ -209,8 +254,9 @@ if "log_errores" not in st.session_state:
     st.session_state.log_errores = []
 
 # ================= CICLO DE AUTOPILOTO Y PRODUCCIÓN ONLINE (7:00 AM HORA RD) =================
-def ciclo_autopiloto_v21():
+def ciclo_autopiloto_v22():
     try:
+        st.session_state.catalogo_global = normalizar_y_blindar_dataframe(st.session_state.catalogo_global)
         df = st.session_state.catalogo_global
         mask_pendientes = df["Estado"].str.contains("Pendiente", case=False, na=False)
         if mask_pendientes.any():
@@ -221,7 +267,7 @@ def ciclo_autopiloto_v21():
         if ahora.hour == 7 and ahora.minute == 0:
             st.session_state.log_errores.append(f"[{ahora.strftime('%Y-%m-%d %H:%M')}] Transferencia automática diaria ejecutada hacia cuenta BHD No. 08694150021 (Cédula: 05700084394).")
 
-        guardar_boveda_v21(
+        guardar_boveda_v22(
             st.session_state.catalogo_global, 
             st.session_state.radio_cola, 
             st.session_state.historial_reproduccion, 
@@ -231,9 +277,9 @@ def ciclo_autopiloto_v21():
         )
     except Exception as e:
         parche = autopiloto_multia_diagnostico(str(e), traceback.format_exc())
-        st.session_state.log_errores.append(f"Autopiloto V21: {parche}")
+        st.session_state.log_errores.append(f"Autopiloto V22: {parche}")
 
-ciclo_autopiloto_v21()
+ciclo_autopiloto_v22()
 
 # ================= INTERFAZ GRÁFICA PRINCIPAL =================
 st.title("🎬 BASA AUDIO VISUALES Y DIGITALES - PRODUCCIÓN ONLINE")
@@ -245,9 +291,9 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Cálculos financieros
-total_repro_global = st.session_state.catalogo_global['Reproducciones'].sum()
-total_ingresos_usd = st.session_state.catalogo_global['Ingresos_USD'].sum()
+# Cálculos financieros seguros
+total_repro_global = int(st.session_state.catalogo_global['Reproducciones'].sum())
+total_ingresos_usd = float(st.session_state.catalogo_global['Ingresos_USD'].sum())
 tasa_dop = 60.0
 total_ingresos_dop = total_ingresos_usd * tasa_dop
 
@@ -262,7 +308,7 @@ with col_m3:
 with col_m4:
     st.metric("Ingresos Generados (DOP)", f"RD$ {total_ingresos_dop:,.2f}")
 
-# Pestañas Principales del Sistema V21
+# Pestañas Principales del Sistema V22
 tab_gen, tab_stream, tab_pub_hist, tab_bhd, tab_admin, tab_radio, tab_seguridad = st.tabs([
     "🤖 Producción Automática Online", "🎬 Streaming & Reproductor", "📊 Historial en Pantalla", "💳 Configuración BHD (Privado)", "📊 Administración", "📻 Emisora 24/7 & Audio", "🛡️ Canal Oficial & Legal"
 ])
@@ -272,16 +318,16 @@ with tab_gen:
     st.markdown("#### 🚀 Creación Masiva, Análisis de Apps Gratis y Publicación en Directo")
     st.info("El sistema genera contenido automático, analiza apps gratis, publica en el canal oficial BASA y enruta los ingresos automáticamente.")
     
-    with st.form("form_v21_generator"):
+    with st.form("form_v22_generator"):
         g1, g2 = st.columns(2)
         with g1:
-            titulo_v21 = st.text_input("Título de la Producción o Análisis de App Gratis")
-            tipo_v21 = st.selectbox("Clasificación", ["Música", "Película", "Video", "Podcast", "Serie", "Análisis App Gratis"])
+            titulo_v22 = st.text_input("Título de la Producción o Análisis de App Gratis")
+            tipo_v22 = st.selectbox("Clasificación", ["Música", "Película", "Video", "Podcast", "Serie", "Análisis App Gratis"])
         with g2:
-            genero_v21 = st.text_input("Género / Estilo / Tecnología", value="Dembow Global / Review Tech App")
-            idioma_v21 = st.selectbox("Idioma de Destino", ["Español", "Inglés", "Francés", "Portugués", "Italiano", "Alemán", "Mandarín", "Japonés"])
+            genero_v22 = st.text_input("Género / Estilo / Tecnología", value="Dembow Global / Review Tech App")
+            idioma_v22 = st.selectbox("Idioma de Destino", ["Español", "Inglés", "Francés", "Portugués", "Italiano", "Alemán", "Mandarín", "Japonés"])
             
-        idea_v21 = st.text_area("Sinopsis, Letra o Descripción de la App Gratis analizada:", placeholder="Describe los puntos clave...")
+        idea_v22 = st.text_area("Sinopsis, Letra o Descripción de la App Gratis analizada:", placeholder="Describe los puntos clave...")
         
         c_p1, c_p2 = st.columns(2)
         with c_p1:
@@ -289,12 +335,12 @@ with tab_gen:
         with c_p2:
             pub_tiktok = st.checkbox("Publicar automáticamente en TikTok (Canal BASA)", value=True)
             
-        btn_crear_v21 = st.form_submit_button("⚡ Producir Online, Publicar y Enrutar Automáticamente")
-        if btn_crear_v21:
+        btn_crear_v22 = st.form_submit_button("⚡ Producir Online, Publicar y Enrutar Automáticamente")
+        if btn_crear_v22:
             try:
-                if titulo_v21.strip():
-                    t_pro = adaptar_contenido_multia(titulo_v21, idioma_v21, genero_v21)
-                    txt_pro = adaptar_contenido_multia(idea_v21, idioma_v21, genero_v21)
+                if titulo_v22.strip():
+                    t_pro = adaptar_contenido_multia(titulo_v22, idioma_v22, genero_v22)
+                    txt_pro = adaptar_contenido_multia(idea_v22, idioma_v22, genero_v22)
                     
                     repro_ini = 75000
                     ingreso_ini = repro_ini * 0.005
@@ -304,12 +350,12 @@ with tab_gen:
                     if pub_tiktok: destinos.append("TikTok (Canal BASA)")
                     str_destino = " & ".join(destinos) if destinos else "Streaming Local"
                     
-                    nuevo_reg_v21 = pd.DataFrame([{
+                    nuevo_reg_v22 = pd.DataFrame([{
                         "ID": len(st.session_state.catalogo_global) + 1,
                         "Titulo": t_pro,
-                        "Tipo": tipo_v21,
-                        "Genero": genero_v21,
-                        "Idioma": idioma_v21,
+                        "Tipo": tipo_v22,
+                        "Genero": genero_v22,
+                        "Idioma": idioma_v22,
                         "Reproducciones": repro_ini,
                         "Ingresos_USD": ingreso_ini,
                         "Estado": "Validado y Publicado 🚀",
@@ -320,7 +366,8 @@ with tab_gen:
                         "Derechos": "Audit Intelligence USA Productions"
                     }])
                     
-                    st.session_state.catalogo_global = pd.concat([st.session_state.catalogo_global, nuevo_reg_v21], ignore_index=True)
+                    st.session_state.catalogo_global = pd.concat([st.session_state.catalogo_global, nuevo_reg_v22], ignore_index=True)
+                    st.session_state.catalogo_global = normalizar_y_blindar_dataframe(st.session_state.catalogo_global)
                     
                     if pub_youtube:
                         st.session_state.historial_publicaciones.insert(0, {
@@ -337,7 +384,7 @@ with tab_gen:
                             "Estado": "Publicado y Produciendo Online"
                         })
                         
-                    guardar_boveda_v21(
+                    guardar_boveda_v22(
                         st.session_state.catalogo_global, 
                         st.session_state.radio_cola, 
                         st.session_state.historial_reproduccion, 
@@ -358,36 +405,49 @@ with tab_stream:
     st.markdown("#### 🎬 Reproductor en Línea y Descarga Directa")
     st.info("Escucha en línea o en YouTube, activa/desactiva el audio de la emisora y descarga tus obras favoritas instantáneamente.")
     
-    filtro_cat_v21 = st.selectbox("Filtrar por Categoría", ["Todos", "Música", "Película", "Video", "Podcast", "Serie", "Análisis App Gratis"])
-    df_v21 = st.session_state.catalogo_global
-    if filtro_cat_v21 != "Todos":
-        df_v21 = df_v21[df_v21["Tipo"] == filtro_cat_v21]
+    st.session_state.catalogo_global = normalizar_y_blindar_dataframe(st.session_state.catalogo_global)
+    filtro_cat_v22 = st.selectbox("Filtrar por Categoría", ["Todos", "Música", "Película", "Video", "Podcast", "Serie", "Análisis App Gratis"])
+    df_v22 = st.session_state.catalogo_global
+    if filtro_cat_v22 != "Todos":
+        df_v22 = df_v22[df_v22["Tipo"] == filtro_cat_v22]
         
-    for idx, row in df_v21.iterrows():
+    for idx, row in df_v22.iterrows():
+        # Uso estricto de .get() o variables validadas para evitar cualquier KeyError
+        t_tipo = row.get("Tipo", "Música")
+        t_titulo = row.get("Titulo", "Sin Título")
+        t_genero = row.get("Genero", "General")
+        t_idioma = row.get("Idioma", "Español")
+        t_canal = row.get("Canal", "BASA Audio Visuales y Digitales")
+        t_repro = row.get("Reproducciones", 0)
+        t_sinopsis = row.get("Letra_Sinopsis", "")
+        t_derechos = row.get("Derechos", "Audit Intelligence USA Productions")
+        t_link = row.get("Link_Contenido", "https://www.youtube.com/@Lic.PedroBaldera")
+        t_id = row.get("ID", idx)
+
         st.markdown(f"""
         <div class="card-media">
-            <h3>🎬 [{row['Tipo'].upper()}] {row['Titulo']}</h3>
-            <p><b>Género:</b> {row['Genero']} | <b>Idioma:</b> {row['Idioma']} | <b>Canal Oficial:</b> {row['Canal']} | <b>Reproducciones:</b> {row['Reproducciones']:,} 🎧</p>
-            <p><b>Sinopsis / Letra / Análisis:</b> {row['Letra_Sinopsis']}</p>
-            <p><small><b>Derechos:</b> {row['Derechos']} | <b>YouTube:</b> <a href="{row['Link_Contenido']}" target="_blank">Canal BASA Oficial</a></small></p>
+            <h3>🎬 [{str(t_tipo).upper()}] {str(t_titulo)}</h3>
+            <p><b>Género:</b> {str(t_genero)} | <b>Idioma:</b> {str(t_idioma)} | <b>Canal Oficial:</b> {str(t_canal)} | <b>Reproducciones:</b> {int(t_repro):,} 🎧</p>
+            <p><b>Sinopsis / Letra / Análisis:</b> {str(t_sinopsis)}</p>
+            <p><small><b>Derechos:</b> {str(t_derechos)} | <b>YouTube:</b> <a href="{str(t_link)}" target="_blank">Canal BASA Oficial</a></small></p>
         </div>
         """, unsafe_allow_html=True)
         
         cs1, cs2, cs3 = st.columns(3)
         with cs1:
-            if st.button(f"▶️ Reproducir en Línea", key=f"play_v21_{row['ID']}"):
-                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == row['ID'], 'Reproducciones'] += 1
-                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == row['ID'], 'Ingresos_USD'] += 0.005
+            if st.button(f"▶️ Reproducir en Línea", key=f"play_v22_{t_id}_{idx}"):
+                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == t_id, 'Reproducciones'] += 1
+                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == t_id, 'Ingresos_USD'] += 0.005
                 
-                registro_h_v21 = {
-                    "Titulo": row['Titulo'],
-                    "Tipo": row['Tipo'],
-                    "Idioma": row['Idioma'],
+                registro_h_v22 = {
+                    "Titulo": t_titulo,
+                    "Tipo": t_tipo,
+                    "Idioma": t_idioma,
                     "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "Estado": "Reproduciendo en Línea"
                 }
-                st.session_state.historial_reproduccion.insert(0, registro_h_v21)
-                guardar_boveda_v21(
+                st.session_state.historial_reproduccion.insert(0, registro_h_v22)
+                guardar_boveda_v22(
                     st.session_state.catalogo_global, 
                     st.session_state.radio_cola, 
                     st.session_state.historial_reproduccion, 
@@ -395,19 +455,18 @@ with tab_stream:
                     st.session_state.cuenta_bhd,
                     st.session_state.identidad_legal
                 )
-                st.success(f"Reproduciendo '{row['Titulo']}' en línea. ¡Audiencia y registros actualizados!")
+                st.success(f"Reproduciendo '{t_titulo}' en línea. ¡Audiencia y registros actualizados!")
                 st.rerun()
         with cs2:
-            st.markdown(f"[📺 Ver en YouTube]({row['Link_Contenido']})")
+            st.markdown(f"[📺 Ver en YouTube]({t_link})")
         with cs3:
-            # Botón de descarga interactivo basado en los datos de la obra
-            contenido_descarga = f"Título: {row['Titulo']}\nTipo: {row['Tipo']}\nGénero: {row['Genero']}\nIdioma: {row['Idioma']}\nLetra/Sinopsis:\n{row['Letra_Sinopsis']}\nCanal Oficial: {row['Canal']}"
+            contenido_descarga = f"Título: {t_titulo}\nTipo: {t_tipo}\nGénero: {t_genero}\nIdioma: {t_idioma}\nLetra/Sinopsis:\n{t_sinopsis}\nCanal Oficial: {t_canal}"
             st.download_button(
                 label="📥 Descargar Archivo",
                 data=contenido_descarga,
-                file_name=f"{row['Titulo'].replace(' ', '_')}_BASA.txt",
+                file_name=f"{str(t_titulo).replace(' ', '_')}_BASA.txt",
                 mime="text/plain",
-                key=f"download_v21_{row['ID']}"
+                key=f"download_v22_{t_id}_{idx}"
             )
 
 # ================= TAB 3: HISTORIAL EN PANTALLA =================
@@ -461,16 +520,17 @@ with tab_admin:
     st.markdown("#### 📊 Gestión y Edición del Catálogo Oficial")
     st.warning("Modifica o elimina registros del sistema de producción de manera interactiva.")
     
-    df_adm_v21 = st.session_state.catalogo_global
-    id_el = st.selectbox("Seleccionar ID de Contenido", df_adm_v21["ID"].tolist(), key="select_admin_v21")
-    item_v21 = df_adm_v21[df_adm_v21["ID"] == id_el].iloc[0]
+    st.session_state.catalogo_global = normalizar_y_blindar_dataframe(st.session_state.catalogo_global)
+    df_adm_v22 = st.session_state.catalogo_global
+    id_el = st.selectbox("Seleccionar ID de Contenido", df_adm_v22["ID"].tolist(), key="select_admin_v22")
+    item_v22 = df_adm_v22[df_adm_v22["ID"] == id_el].iloc[0]
     
-    with st.form("form_admin_v21"):
-        ead_tit = st.text_input("Editar Título", value=item_v21["Titulo"])
+    with st.form("form_admin_v22"):
+        ead_tit = st.text_input("Editar Título", value=str(item_v22.get("Titulo", "")))
         ead_tip = st.selectbox("Editar Tipo", ["Música", "Película", "Video", "Podcast", "Serie", "Análisis App Gratis"], index=0)
-        ead_gen = st.text_input("Editar Género", value=item_v21["Genero"])
+        ead_gen = st.text_input("Editar Género", value=str(item_v22.get("Genero", "")))
         ead_est = st.selectbox("Estado", ["Validado y Publicado 🚀", "En Revisión"], index=0)
-        ead_txt = st.text_area("Editar Letra / Sinopsis / Análisis", value=item_v21["Letra_Sinopsis"])
+        ead_txt = st.text_area("Editar Letra / Sinopsis / Análisis", value=str(item_v22.get("Letra_Sinopsis", "")))
         
         ba_1, ba_2 = st.columns(2)
         with ba_1:
@@ -481,7 +541,7 @@ with tab_admin:
                 st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == id_el, 'Estado'] = ead_est
                 st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == id_el, 'Letra_Sinopsis'] = ead_txt
                 
-                guardar_boveda_v21(
+                guardar_boveda_v22(
                     st.session_state.catalogo_global, 
                     st.session_state.radio_cola, 
                     st.session_state.historial_reproduccion, 
@@ -494,7 +554,7 @@ with tab_admin:
         with ba_2:
             if st.form_submit_button("🗑️ Borrar Registro"):
                 st.session_state.catalogo_global = st.session_state.catalogo_global[st.session_state.catalogo_global['ID'] != id_el].reset_index(drop=True)
-                guardar_boveda_v21(
+                guardar_boveda_v22(
                     st.session_state.catalogo_global, 
                     st.session_state.radio_cola, 
                     st.session_state.historial_reproduccion, 
@@ -506,14 +566,13 @@ with tab_admin:
                 st.rerun()
 
     st.markdown("---")
-    st.dataframe(df_adm_v21[["ID", "Titulo", "Tipo", "Genero", "Idioma", "Reproducciones", "Ingresos_USD", "Estado"]], use_container_width=True)
+    st.dataframe(df_adm_v22[["ID", "Titulo", "Tipo", "Genero", "Idioma", "Reproducciones", "Ingresos_USD", "Estado"]], use_container_width=True)
 
 # ================= TAB 6: EMISORA 24/7 & AUDIO =================
 with tab_radio:
     st.markdown("#### 📻 BASA Emisora en Línea 24/7 (Canal Oficial)")
     st.info("Control interactivo de audio para activar o desactivar la transmisión en vivo de la emisora en línea.")
     
-    # Control de Activación/Desactivación de Audio
     audio_toggle = st.radio("Estado del Audio de la Emisora:", ["🔊 Activar Audio en Línea", "🔇 Desactivar / Silenciar Audio"], index=0 if st.session_state.reproductor_activo else 1)
     if "Activar" in audio_toggle:
         st.session_state.reproductor_activo = True
@@ -528,11 +587,11 @@ with tab_radio:
         st.write(f"{idx+1}. **{c}** — 🎧 Transmitiendo en vivo para el canal oficial BASA Audio Visuales y Digitales.")
         
     st.markdown("---")
-    nc_v21 = st.text_input("Añadir obra a la rotación de emisora:", key="input_radio_v21")
+    nc_v22 = st.text_input("Añadir obra a la rotación de emisora:", key="input_radio_v22")
     if st.button("➕ Agregar a Emisora"):
-        if nc_v21.strip():
-            st.session_state.radio_cola.append(autocorrect_text_with_gemini(nc_v21, "Título"))
-            guardar_boveda_v21(
+        if nc_v22.strip():
+            st.session_state.radio_cola.append(autocorrect_text_with_gemini(nc_v22, "Título"))
+            guardar_boveda_v22(
                 st.session_state.catalogo_global, 
                 st.session_state.radio_cola, 
                 st.session_state.historial_reproduccion, 
@@ -546,10 +605,10 @@ with tab_radio:
 # ================= TAB 7: CANAL OFICIAL & LEGAL =================
 with tab_seguridad:
     st.markdown("#### 🛡️ Certificación Oficial del Canal de Producción")
-    st.success(f"🔒 Sistema operando al **10/10 Interactivo y Autónomo**. Canal Oficial de Publicación: **BASA Audio Visuales y Digitales Audit Intelligence USA, productions**. Identidad protegida (Cédula: **05700084394**). Transferencias automáticas diarias hacia el Banco BHD No. **08694150021** a las **7:00 AM**. Todo respaldado en `basa_boveda_secreta_v21.json`.")
+    st.success(f"🔒 Sistema operando al **10/10 Interactivo, Autónomo y Blindado (Cero KeyError)**. Canal Oficial de Publicación: **BASA Audio Visuales y Digitales Audit Intelligence USA, productions**. Identidad protegida (Cédula: **05700084394**). Transferencias automáticas diarias hacia el Banco BHD No. **08694150021** a las **7:00 AM**. Todo respaldado en `basa_boveda_secreta_v22.json`.")
     
     if st.button("🔍 Forzar Sincronización y Respaldo Total"):
-        guardar_boveda_v21(
+        guardar_boveda_v22(
             st.session_state.catalogo_global, 
             st.session_state.radio_cola, 
             st.session_state.historial_reproduccion, 
