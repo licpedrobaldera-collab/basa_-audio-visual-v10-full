@@ -230,7 +230,6 @@ if "identidad_legal" not in st.session_state:
 if "log_errores" not in st.session_state:
     st.session_state.log_errores = []
 
-# Ciclo automático de Radio Estación
 def ciclo_radio_v25():
     try:
         st.session_state.catalogo_global = normalizar_y_blindar_dataframe(st.session_state.catalogo_global)
@@ -245,7 +244,6 @@ def ciclo_radio_v25():
 
 ciclo_radio_v25()
 
-# Interfaz Principal de la Estación de Radio
 st.title("📻 BASA GLOBAL RADIO STATION - auditintelligence-usa.com")
 st.markdown("""
 <div class="author-banner">
@@ -255,7 +253,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Métricas de la Estación
 total_repro_radio = int(st.session_state.catalogo_global['Reproducciones'].sum())
 total_ingresos_usd_radio = float(st.session_state.catalogo_global['Ingresos_USD'].sum())
 tasa_dop = 60.0
@@ -271,12 +268,10 @@ with col_r3:
 with col_r4:
     st.metric("Ingresos BHD (DOP)", f"RD$ {total_ingresos_dop_radio:,.2f}")
 
-# Pestañas de la Estación de Radio
 tab_radio_live, tab_radio_history, tab_radio_hosting, tab_radio_bhd, tab_radio_admin, tab_radio_settings = st.tabs([
     "📻 Reproductor Estación 24/7", "📜 Archivo Histórico Full", "🌐 Hosting & auditintelligence-usa.com", "💳 Cuenta BHD (08694150021)", "📊 Administración Radio", "🛡️ Autopiloto & DNS"
 ])
 
-# ================= TAB 1: REPRODUCTOR ESTACIÓN 24/7 =================
 with tab_radio_live:
     st.markdown("#### 📻 Transmisión en Directo en auditintelligence-usa.com")
     st.success("📡 La emisora oficial está transmitiendo el archivo histórico completo de temas 24/7 sin interrupciones con calidad de audio optimizada por IA.")
@@ -294,7 +289,6 @@ with tab_radio_live:
     for idx, c in enumerate(st.session_state.radio_cola):
         st.write(f"{idx+1}. **{c}** — 🎧 Transmitiendo en directo para todo el mundo desde Brisas del Este, SDE.")
 
-# ================= TAB 2: ARCHIVO HISTÓRICO FULL =================
 with tab_radio_history:
     st.markdown("#### 📜 Archivo Histórico Completo de Temas (Full Full)")
     st.info("Reproduce, descarga o escucha en vivo cada uno de los temas históricos producidos por el canal oficial BASA.")
@@ -318,124 +312,4 @@ with tab_radio_history:
         </div>
         """, unsafe_allow_html=True)
         
-        c_r1, c_r2 = st.columns(2)
-        with c_r1:
-            if st.button(f"▶️ Reproducir en Emisora", key=f"play_radio_{t_id}_{idx}"):
-                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == t_id, 'Reproducciones'] += 1
-                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == t_id, 'Ingresos_USD'] += 0.02
-                
-                st.session_state.historial_reproduccion.insert(0, {
-                    "Titulo": t_tit,
-                    "Tipo": t_tipo,
-                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "Estado": "Reproducido en Emisora"
-                })
-                guardar_estacion_v25(
-                    st.session_state.catalogo_global, st.session_state.radio_cola, 
-                    st.session_state.historial_reproduccion, st.session_state.historial_publicaciones, 
-                    st.session_state.cuenta_bhd, st.session_state.identidad_legal, st.session_state.servidor_deploy
-                )
-                st.success(f"Reproduciendo '{t_tit}' en la estación de radio auditintelligence-usa.com.")
-                st.rerun()
-        with c_r2:
-            st.markdown(f"[📺 Ver en YouTube Oficial]({t_lnk})")
-
-# ================= TAB 3: HOSTING & DOMINIO =================
-with tab_radio_hosting:
-    st.markdown("#### 🌐 Alojamiento Gratuito Compatible con IA & auditintelligence-usa.com")
-    st.success("✅ La aplicación de la estación de radio está configurada para alojarse en servidores en la nube de dominio público compatibles con IA (Hugging Face Spaces o Streamlit Community Cloud) y enlazada profesionalmente con el dominio personalizado **auditintelligence-usa.com**.")
-    
-    with st.form("form_hosting_v25"):
-        h_prov = st.text_input("Servidor Cloud de Dominio Público:", value=st.session_state.servidor_deploy.get("proveedor", ""))
-        h_dom = st.text_input("Dominio Personalizado (DNS):", value=st.session_state.servidor_deploy.get("url_custom", "https://auditintelligence-usa.com"))
-        
-        if st.form_submit_button("🌐 Actualizar Enlace DNS y Hosting"):
-            st.session_state.servidor_deploy["proveedor"] = h_prov
-            st.session_state.servidor_deploy["url_custom"] = h_dom
-            guardar_estacion_v25(
-                st.session_state.catalogo_global, st.session_state.radio_cola, 
-                st.session_state.historial_reproduccion, st.session_state.historial_publicaciones, 
-                st.session_state.cuenta_bhd, st.session_state.identidad_legal, st.session_state.servidor_deploy
-            )
-            st.success("¡Configuración de servidor y dominio auditintelligence-usa.com guardada con éxito!")
-            st.rerun()
-
-# ================= TAB 4: CUENTA BHD =================
-with tab_radio_bhd:
-    st.markdown("#### 💳 Configuración Bancaria y Transferencia Diaria (7:00 AM)")
-    st.markdown("""
-    <div class="card-media">
-        <h3>🏦 Banco BHD - Enlace de Pagos Automáticos (Estación de Radio)</h3>
-        <p><b>Titular:</b> Pedro Baldera</p>
-        <p><b>Cédula:</b> <code style="color: #D4AF37;">05700084394</code></p>
-        <p><b>Cuenta de Ahorros BHD:</b> <code style="color: #00FF66; font-size: 18px; font-weight: bold;">08694150021</code></p>
-        <p><b>Transferencia Automática:</b> Todos los días a las <b>7:00 AM (Hora República Dominicana)</b></p>
-        <p><b>Sede Emisora:</b> Calle Orlando Martínez No. 49, Brisas del Este, SDE, RD</p>
-    </div>
-    """, unsafe_allow_html=True)
-    st.metric("Total Ingresos Generados en Emisora", f"${total_ingresos_usd_radio:,.2f} USD (RD$ {total_ingresos_dop_radio:,.2f})")
-
-# ================= TAB 5: ADMINISTRACIÓN =================
-with tab_radio_admin:
-    st.markdown("#### 📊 Gestión del Archivo Histórico de la Emisora")
-    st.warning("Modifica o elimina temas del archivo histórico de la estación.")
-    
-    st.session_state.catalogo_global = normalizar_y_blindar_dataframe(st.session_state.catalogo_global)
-    df_adm_r = st.session_state.catalogo_global
-    id_r = st.selectbox("Seleccionar ID de Tema", df_adm_r["ID"].tolist(), key="select_admin_radio")
-    item_r = df_adm_r[df_adm_r["ID"] == id_r].iloc[0]
-    
-    with st.form("form_admin_radio"):
-        er_tit = st.text_input("Editar Título", value=str(item_r.get("Titulo", "")))
-        er_tip = st.selectbox("Editar Tipo", ["Música / Histórico", "Soundtrack / Histórico", "Podcast"], index=0)
-        er_gen = st.text_input("Editar Género", value=str(item_r.get("Genero", "")))
-        er_est = st.selectbox("Estado", ["Transmitiendo en auditintelligence-usa.com 📻", "En Revisión"], index=0)
-        er_txt = st.text_area("Editar Sinopsis", value=str(item_r.get("Letra_Sinopsis", "")))
-        
-        br_1, br_2 = st.columns(2)
-        with br_1:
-            if st.form_submit_button("💾 Guardar Cambios"):
-                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == id_r, 'Titulo'] = er_tit
-                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == id_r, 'Tipo'] = er_tip
-                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == id_r, 'Genero'] = er_gen
-                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == id_r, 'Estado'] = er_est
-                st.session_state.catalogo_global.loc[st.session_state.catalogo_global['ID'] == id_r, 'Letra_Sinopsis'] = er_txt
-                
-                guardar_estacion_v25(
-                    st.session_state.catalogo_global, st.session_state.radio_cola, 
-                    st.session_state.historial_reproduccion, st.session_state.historial_publicaciones, 
-                    st.session_state.cuenta_bhd, st.session_state.identidad_legal, st.session_state.servidor_deploy
-                )
-                st.success("¡Cambios guardados en la emisora!")
-                st.rerun()
-        with br_2:
-            if st.form_submit_button("🗑️ Borrar Tema"):
-                st.session_state.catalogo_global = st.session_state.catalogo_global[st.session_state.catalogo_global['ID'] != id_r].reset_index(drop=True)
-                guardar_estacion_v25(
-                    st.session_state.catalogo_global, st.session_state.radio_cola, 
-                    st.session_state.historial_reproduccion, st.session_state.historial_publicaciones, 
-                    st.session_state.cuenta_bhd, st.session_state.identidad_legal, st.session_state.servidor_deploy
-                )
-                st.success("¡Tema eliminado de la emisora!")
-                st.rerun()
-
-    st.markdown("---")
-    st.dataframe(df_adm_r[["ID", "Titulo", "Tipo", "Genero", "Reproducciones", "Ingresos_USD", "Estado"]], use_container_width=True)
-
-# ================= TAB 6: AUTOPILOTO & DNS =================
-with tab_radio_settings:
-    st.markdown("#### 🛡️ Certificación de la Estación & DNS Pro")
-    st.success("🔒 Estación de Radio operando al **10/10 Full Full**. Transmitiendo el archivo histórico completo bajo el dominio **auditintelligence-usa.com** (Sede: Calle Orlando Martínez No. 49, Brisas del Este, SDE, RD). Cédula titular: **05700084394**. Cuenta BHD: **08694150021** (Transferencias a las 7:00 AM).")
-    
-    if st.button("🔍 Forzar Sincronización Total de la Emisora"):
-        guardar_estacion_v25(
-            st.session_state.catalogo_global, st.session_state.radio_cola, 
-            st.session_state.historial_reproduccion, st.session_state.historial_publicaciones, 
-            st.session_state.cuenta_bhd, st.session_state.identidad_legal, st.session_state.servidor_deploy
-        )
-        st.success("✅ Sincronización de la emisora completada con éxito. Integridad: 10/10.")
-        
-    st.markdown("---")
-    st.markdown("#### Terminal de Operaciones Radio")
-    log_texto = "\n".join(st.session_state.log_errores) if st.session_state.log_errores else "Emisora operando al 10/10 en auditintelligence-usa.com sin interrupciones."
-    st.markdown(f'<div class="terminal-box">{log_texto}</div>', unsafe_allow_html=True)
+        c_r1, c_r2
