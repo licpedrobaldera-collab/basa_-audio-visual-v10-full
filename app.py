@@ -5,11 +5,13 @@
 # Modulo Crew 4 IA Orquestado + Blindaje Total de Excepciones
 # ============================================================================
 import os
-import streamlit as st
+import sys
+import json
+import traceback
 import pandas as pd
+import streamlit as st
 from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
-import traceback
 
 # Importación segura y blindada de Google GenAI para evitar fallos de dependencias
 try:
@@ -74,7 +76,7 @@ def autocorrect_text_with_gemini(text_to_correct: str, context_type: str = "gene
 # ================= MEMORIA FULL - TODO LO YA CREADO =================
 if "contenido" not in st.session_state:
     st.session_state.contenido = pd.DataFrame([
-        {"ID": 1, "Titulo": "SE ACERCA EL DOBLE", "Tipo": "Canción", "IA Origen": "BASA CREW - Moderna+Antigua", "Genero": "Dembow Navidad + Perico Ripiao", "Reproducciones": 99999, "Likes": 9999, "Estado": "ÉXITO 🔥 #1", "Fecha": "2026-11-09", "Parrafo Original": "Se acerca el doble, mi carro no enciende, se pinchó la goma, vecina me dio su número, familia a bailar, lechón asado, ron, whisky caro, vino, viajeros, villa a celebrar", "Prompt IA": "", "Link YouTube": "https://youtube.com/@tubasa"},
+        {"ID": 1, "Titulo": "SE ACERCA EL DOBLE", "Tipo": "Canción", "IA Origen": "BASA CREW - Moderna+Antigua", "Genero": "Dembow Navidad + Perico Ripiao", "Reproducciones": 99999, "Likes": 9999, "Estado": "ÉXITO 🔥 #1", "Fecha": "2026-11-09", "Parrafo Original": "Se acerca el doble, mi carro no enciende, se pinchó la goma, vecina me dio su número, familia a bailar, lechón asado, ron, whisky caro, vino, viajeros, villa a celebrar", "Prompt IA": "", "Link YouTube": "https://youtube.com"},
         {"ID": 2, "Titulo": "DICIEMBRE RULAY", "Tipo": "Canción", "IA Origen": "BASA IA", "Genero": "Dembow Rulay", "Reproducciones": 12500, "Likes": 2300, "Estado": "ÉXITO 🔥", "Fecha": "2026-11-09", "Parrafo Original": "Diciembre rulay de Los Frailes", "Prompt IA": "", "Link YouTube": ""},
         {"ID": 3, "Titulo": "CÓGELO AHÍ", "Tipo": "Canción", "IA Origen": "Suno", "Genero": "Dembow", "Reproducciones": 8400, "Likes": 1500, "Estado": "ÉXITO 🔥", "Fecha": "2026-11-08", "Parrafo Original": "", "Prompt IA": "", "Link YouTube": ""},
         {"ID": 4, "Titulo": "LOS FRAILES EP1", "Tipo": "Serie", "IA Origen": "BASA IA", "Genero": "Drama Barrio", "Reproducciones": 3200, "Likes": 600, "Estado": "Normal", "Fecha": "2026-11-07", "Parrafo Original": "", "Prompt IA": "", "Link YouTube": ""},
@@ -129,8 +131,8 @@ def probar_sistema(df):
 # ================= CREW 4 IA - GEMINI + CHATGPT + CLAUDE + META =================
 def crew_crear_tema(parrafo):
     """
-    Simulación robusta y orquestada del Crew de 4 IAs colaborativas.
-    Corrige, expande y genera la metadata definitiva para producción de contenido.
+    Orquestación del Crew de 4 IAs colaborativas mediante JSON estructurado.
+    Incluye mitigación autónoma local ante caídas de la API de Google GenAI.
     """
     try:
         parrafo_corregido = autocorrect_text_with_gemini(parrafo, "Letra de inspiración musical")
@@ -158,7 +160,7 @@ def crew_crear_tema(parrafo):
             if response and response.text:
                 return json.loads(response.text.strip())
         
-        # Subsistema de respaldo autónomo local si falla la API
+        # Subsistema de respaldo automático si el cliente no está configurado
         return {
             "titulo": f"TEMA AUTO BASA {datetime.now().strftime('%M%S')}",
             "genero": "Dembow Rulay Urbano",
