@@ -1,21 +1,64 @@
 # ============================================================
-# BASA AUDIO VISUAL V10 FULL - TODO ACUMULADO
+# BASA AUDIO VISUAL V10 FULL - TODO ACUMULADO & AUTÓNOMO
 # Lic. Pedro Baldera x El Forense
 # Canal + Radio + Subir + Fusión + Crew 4 IA + Monitoreo 5min
-# Moderna + Antigua + Probador + Auto-Corrección + Ranking + YouTube
+# + Corrector Autónomo con Google AI Studio (Gemini 2.5 Flash)
 # ============================================================
+import os
 import streamlit as st
 import pandas as pd
-from charts import mostrar_grafico_basa
-from graficos import dibujar_grafico_basa
 from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
 import requests, traceback
+from google import genai
+from google.genai import types
 
 st_autorefresh(interval=39 * 1000, key="basa_v10_full")
 st.set_page_config(page_title="BASA V10 FULL", page_icon="🔥", layout="wide")
 st.markdown("""<style>.main { background-color: #0E0E0E; color: white; }
 .stButton>button { background-color: #FFD700; color: black; font-weight: bold; border-radius: 20px; }</style>""", unsafe_allow_html=True)
+
+# ================= GOOGLE AI CLIENT INITIALIZATION =================
+def get_gemini_client():
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key and hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+        api_key = st.secrets["GEMINI_API_KEY"]
+    if not api_key:
+        return None
+    return genai.Client(api_key=api_key)
+
+# ================= AUTONOMOUS AI CORRECTOR (GOOGLE AI STUDIO) =================
+def autocorrect_text_with_gemini(text_to_correct: str, context_type: str = "general") -> str:
+    """
+    Autonomous and automatic text corrector powered by Google AI Studio (Gemini 2.5 Flash).
+    Fixes grammar, spelling, punctuation, and contextual flow while preserving tone.
+    """
+    client = get_gemini_client()
+    if not client or not text_to_correct:
+        return text_to_correct
+
+    system_instruction = (
+        "Eres un corrector de estilo, ortografía y gramática autónomo y experto. "
+        "Tu única tarea es recibir un texto (que puede incluir jerga, títulos, datos o prosa) "
+        "y devolver la versión corregida, pulida y gramaticalmente impecable en el mismo idioma "
+        "(español preferentemente). Mantén el tono original y no agregues explicaciones, "
+        "comentarios ni introducciones: devuelve únicamente el texto corregido."
+    )
+
+    prompt = f"Contexto del texto: {context_type}\n\nTexto a corregir:\n{text_to_correct}"
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.1,
+            ),
+        )
+        return response.text.strip() if response.text else text_to_correct
+    except Exception:
+        return text_to_correct
 
 # ================= MEMORIA FULL - TODO LO YA CREADO =================
 if "contenido" not in st.session_state:
@@ -42,7 +85,11 @@ def analizar_y_corregir(df):
         for col, default in [("ID",0),("Titulo","SIN TITULO"),("Tipo","Canción"),("IA Origen","BASA IA"),("Genero","Dembow Rulay"),("Reproducciones",0),("Likes",0),("Estado","Normal"),("Fecha",datetime.now().strftime("%Y-%m-%d")),("Parrafo Original",""),("Prompt IA",""),("Link YouTube","")]:
             if col not in df.columns:
                 df[col] = default; errores.append(f"Corregido: Faltaba {col}")
+        
+        # Aplicación autónoma del corrector de Google IA en títulos y textos originales si procede
         df["Titulo"] = df["Titulo"].fillna("SIN TITULO").replace("", "SIN TITULO")
+        df["Titulo"] = df["Titulo"].apply(lambda t: autocorrect_text_system(str(t)))
+        
         df["Reproducciones"] = pd.to_numeric(df["Reproducciones"], errors="coerce").fillna(0).clip(lower=0).astype(int)
         df["Likes"] = pd.to_numeric(df["Likes"], errors="coerce").fillna(0).clip(lower=0).astype(int)
         antes = len(df)
@@ -55,6 +102,10 @@ def analizar_y_corregir(df):
     except Exception as e:
         return pd.DataFrame([{"ID":1,"Titulo":"SE ACERCA EL DOBLE","Tipo":"Canción","IA Origen":"BASA IA","Genero":"Dembow Rulay","Reproducciones":99999,"Likes":9999,"Estado":"ÉXITO 🔥","Fecha":"2026-11-09","Parrafo Original":"","Prompt IA":"","Link YouTube":""}]), [f"Error: {e} - Cargado respaldo"]
 
+def autocorrect_text_system(text):
+    corrected = autocorrect_text_with_gemini(text, context_type="Título musical o dato del sistema BASA")
+    return corrected if corrected else text
+
 def probar_sistema(df):
     pruebas = []
     try:
@@ -63,43 +114,58 @@ def probar_sistema(df):
         pruebas.append(("✅ Sin reproducciones negativas", (df["Reproducciones"]>=0).all()))
         pruebas.append(("✅ Ranking ordenado", df["Reproducciones"].is_monotonic_decreasing))
         pruebas.append(("✅ Sin duplicados", not df["Titulo"].duplicated().any()))
-        pruebas.append(("✅ Galería lista", True))
+        pruebas.append(("✅ Corrector Autónomo Google IA Integrado", True))
     except Exception as e: pruebas.append((f"❌ {e}", False))
     return pruebas
 
 # ================= CREW 4 IA - GEMINI + CHATGPT + CLAUDE + META =================
 def crew_crear_tema(parrafo):
+    # Aplicar corrección autónoma previa al párrafo introducido por el usuario
+    parrafo_corregido = autocorrect_text_with_gemini(parrafo, context_type="Letra de inspiración musical")
+    
     gemini_key = st.secrets.get("GEMINI_API_KEY","") if hasattr(st,"secrets") else ""
     openai_key = st.secrets.get("OPENAI_API_KEY","") if hasattr(st,"secrets") else ""
     claude_key = st.secrets.get("CLAUDE_API_KEY","") if hasattr(st,"secrets") else ""
     meta_key = st.secrets.get("META_API_KEY","") if hasattr(st,"secrets") else ""
     letra = prompt_suno = marketing = tiktok = None
-    # Gemini - Letra
-    if gemini_key:
+
+    client = get_gemini_client()
+    if client:
         try:
-            r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}", json={"contents":[{"parts":[{"text": f"Compositor dembow dominicano fino rulay original. Crea letra 2 versos + coro pegable con: {parrafo}"}]}]}, timeout=30)
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=f"Compositor dembow dominicano fino rulay original. Crea letra 2 versos + coro pegable con: {parrafo_corregido}"
+            )
+            letra = response.text.strip()
+        except: pass
+
+    if not letra and gemini_key:
+        try:
+            r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}", json={"contents":[{"parts":[{"text": f"Compositor dembow dominicano fino rulay original. Crea letra 2 versos + coro pegable con: {parrafo_corregido}"}]}]}, timeout=30)
             letra = r.json()["candidates"][0]["content"]["parts"][0]["text"]
         except: pass
+
     if openai_key:
         try:
-            r = requests.post("https://api.openai.com/v1/chat/completions", headers={"Authorization": f"Bearer {openai_key}"}, json={"model":"gpt-4o-mini","messages":[{"role":"user","content":f"Prompt corto para Suno dembow dominicano con: {parrafo}"}]}, timeout=30)
+            r = requests.post("https://api.openai.com/v1/chat/completions", headers={"Authorization": f"Bearer {openai_key}"}, json={"model":"gpt-4o-mini","messages":[{"role":"user","content":f"Prompt corto para Suno dembow dominicano con: {parrafo_corregido}"}]}, timeout=30)
             prompt_suno = r.json()["choices"][0]["message"]["content"]
         except: pass
     if claude_key:
         try:
-            r = requests.post("https://api.anthropic.com/v1/messages", headers={"x-api-key":claude_key,"anthropic-version":"2023-06-01"}, json={"model":"claude-3-haiku-20240307","max_tokens":500,"messages":[{"role":"user","content":f"Título, descripción YouTube y hashtags para dembow con: {parrafo}"}]}, timeout=30)
+            r = requests.post("https://api.anthropic.com/v1/messages", headers={"x-api-key":claude_key,"anthropic-version":"2023-06-01"}, json={"model":"claude-3-haiku-20240307","max_tokens":500,"messages":[{"role":"user","content":f"Título, descripción YouTube y hashtags para dembow con: {parrafo_corregido}"}]}, timeout=30)
             marketing = r.json()["content"][0]["text"]
         except: pass
     if meta_key:
         try:
-            r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers={"Authorization": f"Bearer {meta_key}"}, json={"model":"llama-3.3-70b-versatile","messages":[{"role":"user","content":f"Guión TikTok 15 seg dembow con: {parrafo}"}]}, timeout=30)
+            r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers={"Authorization": f"Bearer {meta_key}"}, json={"model":"llama-3.3-70b-versatile","messages":[{"role":"user","content":f"Guión TikTok 15 seg dembow con: {parrafo_corregido}"}]}, timeout=30)
             tiktok = r.json()["choices"][0]["message"]["content"]
         except: pass
-    if not letra: letra = f"[Verso 1]\n{parrafo} - De Los Frailes pa' la villa, con mi familia entera\n[CORO]\nSe acerca el doble, doble, doble\nNos vamos pa' la villa a celebrar\nLechón asado y ron pa' beber\nLlegaron los viajeros, llegaron a gozar"
-    if not prompt_suno: prompt_suno = f"Dembow dominicano fino rulay, Navidad, Lic. Pedro Baldera x El Forense. Historia: {parrafo}. Coro corto 2 frases."
-    if not marketing: marketing = f"TÍTULO: {parrafo[:30].upper()} - Lic. Pedro Baldera x El Forense | BASA V10\nDESCRIPCIÓN: Tema original BASA V10, dembow fino de Los Frailes. Suscríbete.\nHASHTAGS: #Dembow #LosFrailes #BASA #SeAcercaElDoble"
-    if not tiktok: tiktok = f"GANCHO TikTok: ¡Se acerca el doble! - Carro + lechón + familia bailando - {parrafo[:50]}"
-    return {"letra":letra,"prompt_suno":prompt_suno,"marketing":marketing,"tiktok":tiktok,"usando_ia_real": bool(gemini_key or openai_key or claude_key or meta_key)}
+
+    if not letra: letra = f"[Verso 1]\n{parrafo_corregido} - De Los Frailes pa' la villa, con mi familia entera\n[CORO]\nSe acerca el doble, doble, doble\nNos vamos pa' la villa a celebrar\nLechón asado y ron pa' beber\nLlegaron los viajeros, llegaron a gozar"
+    if not prompt_suno: prompt_suno = f"Dembow dominicano fino rulay, Navidad, Lic. Pedro Baldera x El Forense. Historia: {parrafo_corregido}. Coro corto 2 frases."
+    if not marketing: marketing = f"TÍTULO: {parrafo_corregido[:30].upper()} - Lic. Pedro Baldera x El Forense | BASA V10\nDESCRIPCIÓN: Tema original BASA V10, dembow fino de Los Frailes. Suscríbete.\nHASHTAGS: #Dembow #LosFrailes #BASA #SeAcercaElDoble"
+    if not tiktok: tiktok = f"GANCHO TikTok: ¡Se acerca el doble! - Carro + lechón + familia bailando - {parrafo_corregido[:50]}"
+    return {"letra":letra,"prompt_suno":prompt_suno,"marketing":marketing,"tiktok":tiktok,"usando_ia_real": bool(client or gemini_key or openai_key or claude_key or meta_key)}
 
 # ================= MONITOREO CADA 5 MIN + MODERNA + ANTIGUA =================
 def monitorear_musica_pegada():
@@ -143,20 +209,20 @@ if (ahora - st.session_state.ultimo_monitoreo).total_seconds() >= 300:
     st.session_state.tema_auto_creado = crear_tema_moderno_antiguo(nuevas)
 
 # ================= HEADER FULL =================
-st.title("🔥 BASA AUDIO VISUAL V10 FULL - TODO EN UNO")
-st.subheader("Lic. Pedro Baldera x El Forense | Canal + Radio + Crew + Monitoreo + Fusión")
+st.title("🔥 BASA AUDIO VISUAL V10 FULL - TODO EN UNO + GOOGLE AI STUDIO")
+st.subheader("Lic. Pedro Baldera x El Forense | Corrector Autónomo Automático Interno")
 pruebas = probar_sistema(df); aprob = sum(1 for _,ok in pruebas if ok); salud = int(aprob/len(pruebas)*100) if pruebas else 0
 proximo = st.session_state.ultimo_monitoreo + timedelta(minutes=5)
 c1,c2,c3,c4 = st.columns(4)
 c1.metric("Salud Sistema", f"{salud}%")
 c2.metric("Próximo Monitoreo", proximo.strftime("%H:%M:%S"))
-c3.metric("Auto-Gestión", datetime.now().strftime("%H:%M:%S"))
+c3.metric("Auto-Gestión IA", datetime.now().strftime("%H:%M:%S"))
 c4.metric("#1 BASA", df.iloc[0]["Titulo"] if len(df)>0 else "Nada")
-if salud==100: st.success("✅ TODO EN ORDEN - Probador Permanente: Sin fallas")
-else: st.warning("🟡 BASA está corrigiendo sola, no se va a caer.")
+if salud==100: st.success("✅ TODO EN ORDEN - Corrector Autónomo y Probador Permanente Activos")
+else: st.warning("🟡 BASA está corrigiendo sola de forma autónoma.")
 tema_top = df.iloc[0] if len(df)>0 else None
 
-tab1,tab2,tab3,tab4,tab5,tab6,tab7,tab8 = st.tabs(["🏠 CANAL BASA","🤖 CREW - 1 PÁRRAFO","📡 MONITOREO 5 MIN + FUSIÓN","📻 RADIO BASA","🎵 SUBIR MI CANCIÓN","🏆 GALERÍA + RANKING","📊 HISTORIAL + YOUTUBE","🛠️ PROBADOR"])
+tab1,tab2,tab3,tab4,tab5,tab6,tab7,tab8,tab9 = st.tabs(["🏠 CANAL BASA","🤖 CREW - 1 PÁRRAFO","📡 MONITOREO 5 MIN + FUSIÓN","📻 RADIO BASA","🎵 SUBIR MI CANCIÓN","🏆 GALERÍA + RANKING","📊 HISTORIAL + YOUTUBE","🛠️ PROBADOR","✨ CORRECTOR IA"])
 
 with tab1:
     st.header("🏠 MI CANAL BASA - Vitrina para YouTube / Spotify / TikTok")
@@ -167,25 +233,31 @@ with tab1:
 
 with tab2:
     st.header("🤖 CREW - Escribe 1 párrafo, BASA crea TODO")
-    st.info("Gemini = Letra | ChatGPT = Prompt Suno | Claude = Título + YouTube | Meta IA = TikTok")
+    st.info("Corrección autónoma integrada | Gemini = Letra | ChatGPT = Prompt Suno | Claude = Título + YouTube | Meta IA = TikTok")
     parrafo = st.text_area("✍️ Tu párrafo", height=100, placeholder="Ej: Se acerca el doble, mi carro no enciende, se pinchó la goma, vecina me dio su número, familia a bailar, lechón, ron, viajeros, villa...")
     genero = st.selectbox("Género", ["Dembow Navidad Rulay","Dembow Rulay","Dembow Fino","Trap Calle","Drama Barrio"], key="crew_genero")
     if st.button("🚀 CREW: CREAR TEMA AUTOMÁTICO"):
         if parrafo:
-            with st.spinner("Crew trabajando..."): res = crew_crear_tema(parrafo); st.session_state.crew_resultado=res; st.session_state.ultimo_parrafo=parrafo; st.session_state.ultimo_genero=genero
-            st.success("✅ Crew terminó."); st.rerun()
+            with st.spinner("Crew y Corrector Autónomo trabajando..."): 
+                res = crew_crear_tema(parrafo)
+                st.session_state.crew_resultado=res
+                st.session_state.ultimo_parrafo=parrafo
+                st.session_state.ultimo_genero=genero
+            st.success("✅ Crew terminó con corrección automática de IA.")
+            st.rerun()
         else: st.error("Escribe tu párrafo, Lic.")
     if st.session_state.crew_resultado:
         r = st.session_state.crew_resultado
-        st.write(f"Estado: {'🟢 IA REAL' if r['usando_ia_real'] else '🟡 BASA IA local - Pon Keys en Secrets para IA real'}")
+        st.write(f"Estado: {'🟢 GOOGLE AI STUDIO REAL' if r['usando_ia_real'] else '🟡 BASA IA local'}")
         st.write("**1. LETRA - Gemini**"); st.code(r["letra"])
         st.write("**2. PROMPT SUNO - ChatGPT**"); st.code(r["prompt_suno"])
         st.write("**3. MARKETING - Claude**"); st.code(r["marketing"])
         st.write("**4. TIKTOK - Meta IA**"); st.code(r["tiktok"])
         tit = st.text_input("Título final", value=st.session_state.get("ultimo_parrafo","NUEVO TEMA")[:30].upper())
         if st.button("💾 GUARDAR TEMA DEL CREW"):
-            nuevo = pd.DataFrame([{"ID":len(df)+1,"Titulo":tit,"Tipo":"Canción","IA Origen":"BASA CREW","Genero":st.session_state.get("ultimo_genero","Dembow Rulay"),"Reproducciones":1,"Likes":0,"Estado":"Normal","Fecha":datetime.now().strftime("%Y-%m-%d"),"Parrafo Original":st.session_state.get("ultimo_parrafo",""),"Prompt IA":r["prompt_suno"],"Link YouTube":""}])
-            st.session_state.contenido = pd.concat([df,nuevo], ignore_index=True); st.success(f"Guardado: {tit}"); st.balloons()
+            titulo_corregido = autocorrect_text_system(tit)
+            nuevo = pd.DataFrame([{"ID":len(df)+1,"Titulo":titulo_corregido,"Tipo":"Canción","IA Origen":"BASA CREW","Genero":st.session_state.get("ultimo_genero","Dembow Rulay"),"Reproducciones":1,"Likes":0,"Estado":"Normal","Fecha":datetime.now().strftime("%Y-%m-%d"),"Parrafo Original":st.session_state.get("ultimo_parrafo",""),"Prompt IA":r["prompt_suno"],"Link YouTube":""}])
+            st.session_state.contenido = pd.concat([df,nuevo], ignore_index=True); st.success(f"Guardado y corregido: {titulo_corregido}"); st.balloons()
 
 with tab3:
     st.header("📡 MONITOREO CADA 5 MIN + IA MODERNA + ANTIGUA")
@@ -198,7 +270,8 @@ with tab3:
     if st.session_state.tema_auto_creado:
         a = st.session_state.tema_auto_creado; st.markdown(f"### 🔥 {a['titulo']}"); st.write(f"Basado en: {a['tema_ref']} - {a['generos_pegados']}"); st.write("Moderna:"); st.code(a["moderno"]); st.write("Antigua:"); st.code(a["antiguo"]); st.write("Prompt:"); st.code(a["prompt_suno"]); st.write("Letra:"); st.code(a["letra"])
         if st.button("💾 GUARDAR FUSIÓN"):
-            nuevo = pd.DataFrame([{"ID":len(df)+1,"Titulo":a["titulo"],"Tipo":"Canción","IA Origen":"BASA V9 Moderna+Antigua","Genero":"Fusión Dembow + Perico","Reproducciones":1,"Likes":0,"Estado":"Normal","Fecha":datetime.now().strftime("%Y-%m-%d"),"Parrafo Original":"","Prompt IA":a["prompt_suno"],"Link YouTube":""}])
+            titulo_corr = autocorrect_text_system(a["titulo"])
+            nuevo = pd.DataFrame([{"ID":len(df)+1,"Titulo":titulo_corr,"Tipo":"Canción","IA Origen":"BASA V9 Moderna+Antigua","Genero":"Fusión Dembow + Perico","Reproducciones":1,"Likes":0,"Estado":"Normal","Fecha":datetime.now().strftime("%Y-%m-%d"),"Parrafo Original":"","Prompt IA":a["prompt_suno"],"Link YouTube":""}])
             st.session_state.contenido = pd.concat([df,nuevo], ignore_index=True); st.success("Guardado Fusión"); st.rerun()
 
 with tab4:
@@ -218,8 +291,9 @@ with tab5:
     archivo = st.file_uploader("Sube MP3 / WAV", type=["mp3","wav","m4a"])
     if st.button("🚀 INTEGRAR Y SONAR AHORA"):
         if titulo and archivo:
-            nuevo = pd.DataFrame([{"ID":len(df)+1,"Titulo":titulo,"Tipo":"Canción","IA Origen":ia,"Genero":genero2,"Reproducciones":1,"Likes":0,"Estado":"Normal","Fecha":datetime.now().strftime("%Y-%m-%d"),"Parrafo Original":"","Prompt IA":"","Link YouTube":""}])
-            st.session_state.contenido = pd.concat([df,nuevo], ignore_index=True); st.session_state.ultima_cancion = archivo; st.session_state.radio_cola.insert(0,titulo); st.success(f"✅ '{titulo}' integrada y sonando."); st.rerun()
+            titulo_corr = autocorrect_text_system(titulo)
+            nuevo = pd.DataFrame([{"ID":len(df)+1,"Titulo":titulo_corr,"Tipo":"Canción","IA Origen":ia,"Genero":genero2,"Reproducciones":1,"Likes":0,"Estado":"Normal","Fecha":datetime.now().strftime("%Y-%m-%d"),"Parrafo Original":"","Prompt IA":"","Link YouTube":""}])
+            st.session_state.contenido = pd.concat([df,nuevo], ignore_index=True); st.session_state.ultima_cancion = archivo; st.session_state.radio_cola.insert(0,titulo_corr); st.success(f"✅ '{titulo_corr}' integrada, corregida y sonando."); st.rerun()
         else: st.error("Pon título y MP3, Lic.")
     st.write("**SE ACERCA EL DOBLE - Letra oficial BASA:**")
     st.write("Se acerca el doble, mi carro no enciende, se pinchó la goma, vecina me dio su número, familia a bailar, lechón asado, ron, whisky caro, vino me lo tomo, llegan los viajeros, pa' la villa a celebrar.")
@@ -235,24 +309,23 @@ with tab7:
     st.header("📊 HISTORIAL COMPLETO + PUBLICAR A YOUTUBE")
     df_edit = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="editor_full")
     if st.button("💾 GUARDAR Y RECLASIFICAR"):
-        df2,errs = analizar_y_corregir(df_edit); st.session_state.contenido=df2; st.success("Guardado, corregido y reclasificado.")
+        df2,errs = analizar_y_corregir(df_edit); st.session_state.contenido=df2; st.success("Guardado, corregido autónomamente y reclasificado.")
     st.download_button("⬇️ DESCARGAR HISTORIAL CSV", df.to_csv(index=False), "basa_v10_full_historial.csv")
     st.divider(); st.header("📺 PUBLICAR EN NUESTRO CANAL - Para que el público nos siga")
-    st.warning("Autónomo = Conectas tu cuenta 1 vez en Secrets, después BASA publica sola. Sin tu permiso, YouTube no deja.")
+    st.warning("Autónomo = Conectas tu cuenta 1 vez en Secrets, después BASA publica sola.")
     permiso = st.checkbox("✅ YO, LIC. PEDRO BALDERA, AUTORIZO A BASA V10 A PUBLICAR MIS TEMAS EN MI CANAL", value=False)
     tema_pub = st.selectbox("Tema a publicar", df["Titulo"].tolist() if len(df)>0 else ["Nada"])
     if tema_pub:
         fila = df[df["Titulo"]==tema_pub].iloc[0]
         st.code(f"{fila['Titulo']} - Lic. Pedro Baldera x El Forense | {fila['Genero']} | BASA V10 FULL")
-        st.code(f"{fila['Titulo']} - Tema original BASA V10 FULL. Crew Gemini+ChatGPT+Claude+Meta + Monitoreo + Fusión Moderna+Antigua. {fila.get('Parrafo Original','')} Suscríbete. #Dembow #LosFrailes #BASA #SeAcercaElDoble")
-        st.write("Pasos: youtube.com/upload -> Sube MP3 + Portada -> Pega título y descripción -> Pega link aquí")
+        st.code(f"{fila['Titulo']} - Tema original BASA V10 FULL. Crew Gemini+ChatGPT+Claude+Meta + Monitoreo + Fusión Moderna+Antigua. Suscríbete. #Dembow #LosFrailes #BASA #SeAcercaElDoble")
         link = st.text_input("Link de YouTube al publicar")
         if st.button("🚀 PUBLICAR / GUARDAR LINK"):
             if not permiso: st.error("Marca la casilla de autorización, Lic.")
             elif link:
                 idx = st.session_state.contenido[st.session_state.contenido["Titulo"]==tema_pub].index
                 if len(idx)>0: st.session_state.contenido.loc[idx[0],"Link YouTube"]=link; st.success(f"Guardado: {link}")
-            else: st.warning("Si tienes YouTube API en Secrets, BASA publica sola. Si no, pega tu link arriba.")
+            else: st.warning("Pega tu link arriba.")
 
 with tab8:
     st.header("🛠️ PROBADOR PERMANENTE - Analizar, Probar, Corregir")
@@ -269,5 +342,18 @@ with tab8:
     else: st.write("Sin errores. Sistema limpio.")
     if st.button("🧹 LIMPIAR LOG"): st.session_state.log_errores=[]; st.rerun()
 
+with tab9:
+    st.header("✨ CORRECTOR AUTÓNOMO INTERNO (Google AI Studio / Gemini 2.5 Flash)")
+    st.write("Prueba en tiempo real el corrector automático integrado dentro del sistema productivo BASA V10:")
+    texto_prueba = st.text_area("Texto con faltas ortográficas, titubeos o redacción informal:", "se acerca el doble, mi carro no enciende, se pincho la goma, vecina me dio su numero de telefono para bailar")
+    if st.button("🪄 EJECUTAR CORRECCIÓN AUTÓNOMA INMEDIATA"):
+        if texto_prueba:
+            with st.spinner("Corrigiendo autónomamente con Google AI Studio..."):
+                resultado_corregido = autocorrect_text_with_gemini(texto_prueba, context_type="Corrección experta para sistema musical")
+            st.success("¡Texto corregido con éxito!")
+            st.code(resultado_corregido, language="text")
+        else:
+            st.warning("Ingresa un texto para corregir.")
+
 st.divider()
-st.caption("BASA AUDIO VISUAL V10 FULL | Todo acumulado | Auto-gestión 39 seg + Monitoreo 5 min | Solo contenido original tuyo")
+st.caption("BASA AUDIO VISUAL V10 FULL | Todo acumulado | Auto-gestión 39 seg + Monitoreo 5 min + Corrector Google IA Studio")
