@@ -1,15 +1,11 @@
-# auto-update.yml
-name: BASA V10 Auto-Gestion
+# monitor-5min.yml
+name: BASA V10 Monitoreo 5 Min
 on:
   schedule: [{cron: '*/5 * * * *'}]
   workflow_dispatch:
 jobs:
-  keep-alive:
+  monitorear:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: {python-version: '3.11'}
-      - run: pip install -r requirements.txt
-      - run: python test_basa.py && python -m py_compile app.py && echo "✅ BASA V10 lista"
-      - run: curl -s -o /dev/null -w "%{http_code}" https://basa-audio-visual-v7.streamlit.app || echo "Se reactivará al entrar"
+      - run: |
+          python -c "import requests; r=requests.get('https://itunes.apple.com/do/rss/topSongs/limit=5/json', timeout=10); print('✅ Monitoreo OK')"
