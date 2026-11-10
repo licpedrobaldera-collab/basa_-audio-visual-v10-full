@@ -6,6 +6,7 @@
 # ============================================================
 import streamlit as st
 import pandas as pd
+from charts import mostrar_grafico_basa
 from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
 import requests, traceback
