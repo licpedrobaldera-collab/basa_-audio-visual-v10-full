@@ -1,0 +1,6 @@
+GEMINI_API_KEY = "tu_key"
+OPENAI_API_KEY = "tu_key"
+CLAUDE_API_KEY = "tu_key"
+META_API_KEY = "tu_key_groq"
+YOUTUBE_CLIENT_ID = "tu_id"
+YOUTUBE_CLIENT_SECRET = "tu_secret"
