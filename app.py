@@ -9,8 +9,8 @@ import json
 import math
 import re
 import shutil
-import struct
 import subprocess
+import time
 import urllib.error
 import urllib.request
 import uuid
@@ -143,6 +143,24 @@ VOICE_PROFILES: dict[str, dict[str, Any]] = {
     },
 }
 
+CINEMA_STYLES: dict[
+    str, tuple[tuple[int, int, int], tuple[int, int, int], tuple[int, int, int]]
+] = {
+    "Cine Épico / Hollywood Dorado": (
+        (14, 18, 34),
+        (245, 208, 97),
+        (225, 232, 245),
+    ),
+    "Acción / Cyberpunk Neón": ((10, 12, 24), (0, 240, 255), (235, 245, 255)),
+    "Animación 3D / Familiar": ((22, 34, 68), (255, 185, 65), (255, 255, 255)),
+    "Documental / Historia Real": (
+        (24, 22, 20),
+        (218, 175, 110),
+        (238, 234, 228),
+    ),
+    "Drama / Suspenso Nocturno": ((8, 10, 14), (220, 65, 65), (215, 220, 225)),
+}
+
 
 # ==============================================================================
 # UTILIDADES DE BÓVEDA Y AUTOGUARDADO CONTINUO
@@ -167,10 +185,16 @@ def load_autosave_state() -> dict[str, Any]:
       "bpm": 135,
       "master_prompt": "",
       "cine_title": "El Lápiz Pesa Más que el Pico",
-      "cine_ep": "T01 · E01",
-      "cine_scene": "Escena 01 - De la Obra al Escritorio",
-      "cine_script": "NARRADOR: Con esfuerzo, disciplina y visión, cada paso construye un nuevo horizonte.",
-      "cine_vprompt": "Cinematic wide shot, golden hour sunlight, shallow depth of field, rich color grading, film grain, high detail.",
+      "cine_ep": "Película Completa · T01",
+      "cine_style": "Cine Épico / Hollywood Dorado",
+      "cine_voice": "Voz Masculina",
+      "cine_music_genre": "Score Cinematográfico / Orquestal",
+      "cine_idea": "Historia de superación desde cero hasta alcanzar el éxito en República Dominicana.",
+      "cine_storyboard_text": (
+          "Escena 01 | El Inicio | Amanecer en Santo Domingo, plano general de la ciudad despertando con esperanza.\n"
+          "Escena 02 | El Desafío | Con esfuerzo diario, disciplina y visión, cada paso construye un nuevo horizonte.\n"
+          "Escena 03 | La Victoria | Celebración en familia con música, luz y orgullo para toda Quisqueya."
+      ),
       "pub_title": "Rumbo a Celebrar (Versión Studio)",
       "pub_artist": "BASA Productions · El Forense de la Música",
       "pub_lyrics": "Producido en BASA Universal AI Studio. Arreglos y producción original.",
@@ -209,14 +233,18 @@ def autosave_callback() -> None:
           "ui_cine_title", current["cine_title"]
       ),
       "cine_ep": st.session_state.get("ui_cine_ep", current["cine_ep"]),
-      "cine_scene": st.session_state.get(
-          "ui_cine_scene", current["cine_scene"]
+      "cine_style": st.session_state.get(
+          "ui_cine_style", current["cine_style"]
       ),
-      "cine_script": st.session_state.get(
-          "ui_cine_script", current["cine_script"]
+      "cine_voice": st.session_state.get(
+          "ui_cine_voice", current["cine_voice"]
       ),
-      "cine_vprompt": st.session_state.get(
-          "ui_cine_vprompt", current["cine_vprompt"]
+      "cine_music_genre": st.session_state.get(
+          "ui_cine_music_genre", current["cine_music_genre"]
+      ),
+      "cine_idea": st.session_state.get("ui_cine_idea", current["cine_idea"]),
+      "cine_storyboard_text": st.session_state.get(
+          "ui_cine_storyboard_text", current["cine_storyboard_text"]
       ),
       "pub_title": st.session_state.get("ui_pub_title", current["pub_title"]),
       "pub_artist": st.session_state.get(
@@ -295,46 +323,3 @@ def load_users_vault() -> dict[str, Any]:
     base = {
         "delegates": ["pedro.baldera"],
         "users": {},
-        "device_history": [],
-    }
-    ACCOUNTS_FILE.write_text(
-        json.dumps(base, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
-    return base
-  try:
-    data = json.loads(ACCOUNTS_FILE.read_text(encoding="utf-8"))
-    data.setdefault("delegates", ["pedro.baldera"])
-    data.setdefault("users", {})
-    data.setdefault("device_history", [])
-    return data
-  except Exception:
-    return {"delegates": ["pedro.baldera"], "users": {}, "device_history": []}
-
-
-def save_users_vault(data: dict[str, Any]) -> None:
-  init_dirs()
-  ACCOUNTS_FILE.write_text(
-      json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
-  )
-
-
-def obfuscate_key(secret: str) -> str:
-  raw = secret.encode("utf-8")
-  salted = hashlib.sha256(b"BASA_KEY_SALT::" + raw).hexdigest()[:12]
-  return f"ENC[{salted}]:{base64.b64encode(raw).decode('ascii')}"
-
-
-def reveal_key(encoded: str) -> str:
-  if not encoded or ":" not in encoded:
-    return ""
-  _, b64_part = encoded.split(":", 1)
-  try:
-    return base64.b64decode(b64_part.encode("ascii")).decode("utf-8")
-  except Exception:
-    return ""
-
-
-def log_device_event(
-    username: str,
-    device_type: str,
-    action: str,
