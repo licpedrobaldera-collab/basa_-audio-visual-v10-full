@@ -1,13 +1,7 @@
 import asyncio
-import hashlib
-import io
 import json
 import re
 import shutil
-import subprocess
-import time
-import urllib.error
-import urllib.request
 import uuid
 import zipfile
 from datetime import datetime
@@ -22,20 +16,10 @@ try:
 except Exception:
     HAS_EDGE_TTS = False
 try:
-    import numpy as np
-    HAS_NUMPY = True
-except Exception:
-    HAS_NUMPY = False
-try:
     from PIL import Image, ImageDraw, ImageFont
     HAS_PIL = True
 except Exception:
     HAS_PIL = False
-try:
-    from pydub import AudioSegment
-    HAS_PYDUB = True
-except Exception:
-    HAS_PYDUB = False
 
 st.set_page_config(
     page_title="BASA Universal AI Studio - Autonomo 100/100",
@@ -361,7 +345,7 @@ def main() -> None:
             genres = st.multiselect("Generos (max 3)", ALL_WORLD_GENRES, default=ui["selected_genres"][:3], key="ui_genres")
             voice_type = st.selectbox("Voz / Perfil", list(VOICE_PROFILES.keys()), index=list(VOICE_PROFILES.keys()).index(ui["voice_type"]) if ui["voice_type"] in VOICE_PROFILES else 0, key="ui_voice_type")
             bpm = st.slider("BPM / Tempo", 60, 180, int(ui["bpm"]), key="ui_bpm")
-            master_prompt = st.text_area("Prompt Maestro / Idea", value=ui["master_prompt"], height=80, key="ui_master_prompt", placeholder="Ej: Merengue tipico jocoso para Miniel que comio donde Lethy...")
+            master_prompt = st.text_area("Prompt Maestro / Idea", value=ui["master_prompt"], height=80, key="ui_master_prompt", placeholder="Ej: Merengue tipico jocoso para Miniel...")
         with col2:
             st.subheader("Letra / Guion para Voz")
             default_lyrics = "Rumbo a celebrar, larga vida y salud, bajo el amparo del Senor, a celebrar con mariachi y musica tipica. Pedro Baldera les canta con amor."
@@ -465,45 +449,40 @@ def main() -> None:
             st.info("Aun no hay assets. Genere voz o portada en la pestana 1 para llenar la boveda.")
         else:
             for a in reversed(assets_list[-20:]):
-                a_title = a.get("title", "Sin titulo") if isinstance(a, dict) else "Sin titulo"
-                a_kind = a.get("kind", "asset") if isinstance(a, dict) else "asset"
-                a_date = str(a.get("created_at", ""))[:16] if isinstance(a, dict) else ""
-                a_id = a.get("id", "no-id") if isinstance(a, dict) else "no-id"
-                a_file = a.get("file", "") if isinstance(a, dict) else ""
-
-with st.expander(f"{a_date} - {a_title} [{a_kind}]"):
-    st.write(a)
-    p = Path(a_file)
-    if p.exists() and p.is_file():
-        if p.suffix.lower() in [".mp3", ".wav"]:
-            st.audio(str(p))
-        elif p.suffix.lower() in [".jpg", ".jpeg", ".png"]:
-            st.image(str(p), width=300)
-        # FIX BASA: solo abrir si es archivo real, nunca si es carpeta
-        try:
-            with open(p, "rb") as f:
-                st.download_button(f"Descargar {p.name}", f.read(), file_name=p.name, key=f"dl_{a_id}")
-        except IsADirectoryError:
-            st.warning(f"Este asset es una carpeta, no un archivo: {a_file}")
-        except Exception as e:
-            st.warning(f"No se pudo abrir: {e}")
-    elif p.exists() and p.is_dir():
-        st.warning(f"Este asset apunta a una carpeta, no a un archivo: {a_file}")
-        try:
-            archivos = list(p.iterdir())[:10]
-            for arch in archivos:
-                st.write(f"- {arch.name}")
-        except Exception:
-            pass
-    else:
-        st.warning(f"Archivo no encontrado: {a_file}")
-
+                # FIX NameError: DEFINIR TODO DENTRO DEL FOR, ANTES DEL EXPANDER
+                if not isinstance(a, dict):
+                    continue
+                a_title = a.get("title", "Sin titulo")
+                a_kind = a.get("kind", "asset")
+                a_date = str(a.get("created_at", ""))[:16]
+                a_id = a.get("id", "no-id")
+                a_file = a.get("file", "")
+                a_label = f"{a_date} - {a_title} [{a_kind}]"
+                with st.expander(a_label):
+                    st.write(a)
+                    p = Path(a_file) if a_file else Path("")
+                    if a_file and p.exists() and p.is_file():
+                        if p.suffix.lower() in [".mp3", ".wav"]:
+                            st.audio(str(p))
+                        elif p.suffix.lower() in [".jpg", ".jpeg", ".png"]:
+                            st.image(str(p), width=300)
+                        try:
+                            with open(p, "rb") as f:
+                                st.download_button(f"Descargar {p.name}", f.read(), file_name=p.name, key=f"dl_{a_id}")
+                        except IsADirectoryError:
+                            st.warning(f"Este asset es una carpeta: {a_file}")
+                        except Exception as e:
+                            st.warning(f"No se pudo abrir: {e}")
+                    elif a_file and p.exists() and p.is_dir():
+                        st.warning(f"Este asset apunta a una carpeta: {a_file}")
+                    else:
+                        st.warning(f"Archivo no encontrado: {a_file}")
         if st.button("🗑 Limpiar Boveda (Backup primero)"):
             save_vault(vault)
-            st.success("Backup hecho en basa_vault_data/backups/. Para borrar, borre la carpeta manualmente.")
+            st.success("Backup hecho en basa_vault_data/backups/.")
 
     st.divider()
-    st.caption("BASA Universal AI Studio v10 FULL - 100/100 - (c) Pedro Baldera - BASA Productions - Todos los derechos reservados")
+    st.caption("BASA Universal AI Studio v10 FULL - 100/100 - (c) Pedro Baldera - BASA Productions")
 
 if __name__ == "__main__":
     main()
