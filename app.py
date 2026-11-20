@@ -314,10 +314,30 @@ def init_vault() -> dict[str, Any]:
         "station_config": default_station,
     }
 
-
 def load_users_vault() -> dict[str, Any]:
-  init_dirs()
-  if not ACCOUNTS_FILE.exists():
-    base = {
-        "delegates": ["pedro.baldera"],
-        "users": {},
+    init_dirs()
+    if not ACCOUNTS_FILE.exists():
+        base = {
+            "delegates": ["pedro.baldera"],
+            "users": {},
+            "admin_pin": ADMIN_MASTER_PIN,
+            "created_at": datetime.now().isoformat(),
+        }
+        ACCOUNTS_FILE.write_text(
+            json.dumps(base, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+        return base
+    try:
+        data = json.loads(ACCOUNTS_FILE.read_text(encoding="utf-8"))
+        data.setdefault("delegates", ["pedro.baldera"])
+        data.setdefault("users", {})
+        return data
+    except Exception:
+        return {
+            "delegates": ["pedro.baldera"],
+            "users": {},
+            "admin_pin": ADMIN_MASTER_PIN,
+            "created_at": datetime.now().isoformat(),
+        }
+
+        
