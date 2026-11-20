@@ -470,18 +470,34 @@ def main() -> None:
                 a_date = str(a.get("created_at", ""))[:16] if isinstance(a, dict) else ""
                 a_id = a.get("id", "no-id") if isinstance(a, dict) else "no-id"
                 a_file = a.get("file", "") if isinstance(a, dict) else ""
-                with st.expander(f"{a_date} - {a_title} [{a_kind}]"):
-                    st.write(a)
-                    p = Path(a_file)
-                    if p.exists():
-                        if p.suffix.lower() in [".mp3", ".wav"]:
-                            st.audio(str(p))
-                        elif p.suffix.lower() in [".jpg", ".jpeg", ".png"]:
-                            st.image(str(p), width=300)
-                        with open(p, "rb") as f:
-                            st.download_button(f"Descargar {p.name}", f.read(), file_name=p.name, key=f"dl_{a_id}")
-                    else:
-                        st.warning(f"Archivo no encontrado: {a_file}")
+
+with st.expander(f"{a_date} - {a_title} [{a_kind}]"):
+    st.write(a)
+    p = Path(a_file)
+    if p.exists() and p.is_file():
+        if p.suffix.lower() in [".mp3", ".wav"]:
+            st.audio(str(p))
+        elif p.suffix.lower() in [".jpg", ".jpeg", ".png"]:
+            st.image(str(p), width=300)
+        # FIX BASA: solo abrir si es archivo real, nunca si es carpeta
+        try:
+            with open(p, "rb") as f:
+                st.download_button(f"Descargar {p.name}", f.read(), file_name=p.name, key=f"dl_{a_id}")
+        except IsADirectoryError:
+            st.warning(f"Este asset es una carpeta, no un archivo: {a_file}")
+        except Exception as e:
+            st.warning(f"No se pudo abrir: {e}")
+    elif p.exists() and p.is_dir():
+        st.warning(f"Este asset apunta a una carpeta, no a un archivo: {a_file}")
+        try:
+            archivos = list(p.iterdir())[:10]
+            for arch in archivos:
+                st.write(f"- {arch.name}")
+        except Exception:
+            pass
+    else:
+        st.warning(f"Archivo no encontrado: {a_file}")
+
         if st.button("🗑 Limpiar Boveda (Backup primero)"):
             save_vault(vault)
             st.success("Backup hecho en basa_vault_data/backups/. Para borrar, borre la carpeta manualmente.")
