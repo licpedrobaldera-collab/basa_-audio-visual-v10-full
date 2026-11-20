@@ -1,11 +1,7 @@
-import ast
 import asyncio
-import base64
 import hashlib
 import io
 import json
-import math
-import os
 import re
 import shutil
 import subprocess
@@ -16,11 +12,10 @@ import uuid
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import streamlit as st
 
-# Dependencias opcionales - si faltan, la app sigue corriendo
 try:
     import edge_tts
     HAS_EDGE_TTS = True
@@ -42,9 +37,6 @@ try:
 except Exception:
     HAS_PYDUB = False
 
-# ==============================================================================
-# CONFIGURACION DE PAGINA
-# ==============================================================================
 st.set_page_config(
     page_title="BASA Universal AI Studio - Autonomo 100/100",
     page_icon="⚡",
@@ -62,9 +54,6 @@ UI_STATE_FILE = VAULT_DIR / "ui_autosave_state.json"
 
 ADMIN_MASTER_PIN = "BASA-ADMIN-2026"
 
-# ==============================================================================
-# CATALOGO
-# ==============================================================================
 REGION_GENRE_DEFAULTS: dict[str, list[str]] = {
     "Republica Dominicana (Caribe)": ["Bachata Dominicana", "Merengue de Calle / Mambo", "Salsa Clasica"],
     "Mexico": ["Ranchera / Mariachi", "Musica Mexicana / Banda", "Balada"],
@@ -99,9 +88,6 @@ CINEMA_STYLES: dict[str, tuple[tuple[int, int, int], tuple[int, int, int], tuple
     "Drama / Suspenso Nocturno": ((8, 10, 14), (220, 65, 65), (215, 220, 225)),
 }
 
-# ==============================================================================
-# UTILIDADES BOVEDA
-# ==============================================================================
 def init_dirs() -> None:
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
@@ -188,6 +174,21 @@ def init_vault() -> dict[str, Any]:
                 continue
         return {"created_at": datetime.now().isoformat(), "assets": [], "autonomous_modules": [], "station_config": default_station}
 
+def repair_vault_assets(vault: dict[str, Any]) -> dict[str, Any]:
+    cleaned = []
+    for a in vault.get("assets", []):
+        if not isinstance(a, dict):
+            continue
+        a.setdefault("id", str(uuid.uuid4())[:8])
+        a.setdefault("title", "Sin titulo")
+        a.setdefault("kind", "asset")
+        a.setdefault("file", "")
+        a.setdefault("created_at", datetime.now().isoformat())
+        a.setdefault("meta", {})
+        cleaned.append(a)
+    vault["assets"] = cleaned
+    return vault
+
 def load_users_vault() -> dict[str, Any]:
     init_dirs()
     if not ACCOUNTS_FILE.exists():
@@ -218,9 +219,6 @@ def add_asset(vault: dict[str, Any], title: str, kind: str, file_path: str, meta
     save_vault(vault)
     return asset
 
-# ==============================================================================
-# GENERADORES - AUDIO / PORTADA / CINE
-# ==============================================================================
 def clean_text_for_tts(text: str) -> str:
     text = re.sub(r"[*#_>~`]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
@@ -265,8 +263,8 @@ def generate_cover(title: str, artist: str, genre: str, style_name: str, out_pat
         g = int(bg[1] + (30 - bg[1]) * i / H)
         b = int(bg[2] + (60 - bg[2]) * i / H)
         draw.line([(0, i), (W, i)], fill=(r, g, b))
-    draw.ellipse([W*0.15, H*0.12, W*0.85, H*0.62], outline=accent, width=8)
-    draw.ellipse([W*0.30, H*0.24, W*0.70, H*0.50], outline=accent, width=4)
+    draw.ellipse([W * 0.15, H * 0.12, W * 0.85, H * 0.62], outline=accent, width=8)
+    draw.ellipse([W * 0.30, H * 0.24, W * 0.70, H * 0.50], outline=accent, width=4)
     try:
         f_title = ImageFont.truetype("arial.ttf", 72)
         f_sub = ImageFont.truetype("arial.ttf", 38)
@@ -275,10 +273,12 @@ def generate_cover(title: str, artist: str, genre: str, style_name: str, out_pat
         f_title = ImageFont.load_default()
         f_sub = ImageFont.load_default()
         f_small = ImageFont.load_default()
+
     def center(y, text, font, color):
         bbox = draw.textbbox((0, 0), text, font=font)
         w = bbox[2] - bbox[0]
         draw.text(((W - w) / 2, y), text, font=font, fill=color)
+
     center(680, title[:28], f_title, txt)
     center(780, artist[:38], f_sub, accent)
     center(840, genre[:40], f_small, txt)
@@ -298,8 +298,10 @@ def parse_storyboard(text: str) -> list[dict[str, str]]:
         elif len(parts) == 2:
             scenes.append({"id": parts[0], "title": parts[1], "desc": parts[1]})
         else:
-            scenes.append({"id": f"Escena {len(scenes)+1:02d}", "title": "Escena", "desc": line})
-    return scenes or [{"id": "Escena 01", "title": "Inicio", "desc": text or "Historia BASA"}]
+            scenes.append({"id": f"Escena {len(scenes) + 1:02d}", "title": "Escena", "desc": line})
+    if not scenes:
+        scenes = [{"id": "Escena 01", "title": "Inicio", "desc": text or "Historia BASA"}]
+    return scenes
 
 def export_project_zip(vault: dict[str, Any], title: str) -> Path:
     init_dirs()
@@ -317,36 +319,16 @@ def export_project_zip(vault: dict[str, Any], title: str) -> Path:
                     pass
     return zip_path
 
-# ==============================================================================
-# INTERFAZ PRINCIPAL - 100/100
-# ==============================================================================
 def main() -> None:
     init_dirs()
     vault = init_vault()
     vault = repair_vault_assets(vault)
     users = load_users_vault()
-def repair_vault_assets(vault: dict[str, Any]) -> dict[str, Any]:
-    """Limpia assets viejos sin title/kind/created_at para que no den KeyError."""
-    cleaned = []
-    for a in vault.get("assets", []):
-        if not isinstance(a, dict):
-            continue
-        a.setdefault("id", str(uuid.uuid4())[:8])
-        a.setdefault("title", "Sin titulo")
-        a.setdefault("kind", "asset")
-        a.setdefault("file", "")
-        a.setdefault("created_at", datetime.now().isoformat())
-        a.setdefault("meta", {})
-        cleaned.append(a)
-    vault["assets"] = cleaned
-    return vault
-
     ui = load_autosave_state()
 
     st.title("⚡ BASA Universal AI Studio - Autonomo 100/100")
     st.caption("Pedro Baldera - BASA Productions | Musica + Cine + Radio + Publicacion | Santo Domingo - Pensilvania")
 
-    # PIN ADMIN
     with st.sidebar:
         st.header("🔐 Acceso")
         pin = st.text_input("PIN Admin", type="password", key="admin_pin")
@@ -357,7 +339,8 @@ def repair_vault_assets(vault: dict[str, Any]) -> dict[str, Any]:
         st.header("📊 Boveda")
         st.metric("Assets guardados", len(vault.get("assets", [])))
         st.metric("Modulos autonomos", len(vault.get("autonomous_modules", [])))
-        if st.button("💾 Guardar / Autosave", on_click=autosave_callback):
+        if st.button("💾 Guardar / Autosave"):
+            autosave_callback()
             st.success("Guardado en basa_vault_data/")
         if st.button("📦 Exportar ZIP Completo"):
             zp = export_project_zip(vault, ui["project_title"])
@@ -369,30 +352,29 @@ def repair_vault_assets(vault: dict[str, Any]) -> dict[str, Any]:
 
     tab1, tab2, tab3, tab4 = st.tabs(["🎵 1. Estudio Musica", "🎬 2. Cine / Storyboard", "🚀 3. Publicar / Lanzamiento", "📻 4. Boveda / Radio 24/7"])
 
-    # --- TAB 1 MUSICA ---
     with tab1:
         col1, col2 = st.columns([1, 1])
         with col1:
             st.subheader("Proyecto Musical")
-            project_title = st.text_input("Titulo del proyecto", value=ui["project_title"], key="ui_project_title", on_change=autosave_callback)
+            project_title = st.text_input("Titulo del proyecto", value=ui["project_title"], key="ui_project_title")
             region = st.selectbox("Region / Mercado", list(REGION_GENRE_DEFAULTS.keys()), index=list(REGION_GENRE_DEFAULTS.keys()).index(ui["selected_region"]) if ui["selected_region"] in REGION_GENRE_DEFAULTS else 0, key="ui_region", on_change=on_region_change)
             genres = st.multiselect("Generos (max 3)", ALL_WORLD_GENRES, default=ui["selected_genres"][:3], key="ui_genres")
             voice_type = st.selectbox("Voz / Perfil", list(VOICE_PROFILES.keys()), index=list(VOICE_PROFILES.keys()).index(ui["voice_type"]) if ui["voice_type"] in VOICE_PROFILES else 0, key="ui_voice_type")
             bpm = st.slider("BPM / Tempo", 60, 180, int(ui["bpm"]), key="ui_bpm")
-            master_prompt = st.text_area("Prompt Maestro / Idea", value=ui["master_prompt"], height=80, key="ui_master_prompt", placeholder="Ej: Merengue tipico jocoso para Miniel que comio donde Lethy, luego cafe donde Ondina debajo de la mata de guanabana...")
+            master_prompt = st.text_area("Prompt Maestro / Idea", value=ui["master_prompt"], height=80, key="ui_master_prompt", placeholder="Ej: Merengue tipico jocoso para Miniel que comio donde Lethy...")
         with col2:
             st.subheader("Letra / Guion para Voz")
             default_lyrics = "Rumbo a celebrar, larga vida y salud, bajo el amparo del Senor, a celebrar con mariachi y musica tipica. Pedro Baldera les canta con amor."
             lyrics = st.text_area("Letra completa", value=default_lyrics, height=220, key="lyrics_input")
-            st.caption(f"Caracteres: {len(lyrics)} | Voz: {VOICE_PROFILES[voice_type]['voice'] or 'Instrumental'} | BPM: {bpm} | Generos: {', '.join(genres) if genres else 'Sin genero'}")
+            st.caption(f"Caracteres: {len(lyrics)} | Voz: {VOICE_PROFILES[voice_type]['voice'] or 'Instrumental'} | BPM: {bpm}")
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("🎤 Generar Voz MP3", type="primary", use_container_width=True):
-                    if not is_admin and pin:
+                    if pin and not is_admin:
                         st.error("Necesita PIN Admin para generar.")
                     else:
                         with st.spinner("Generando voz con edge-tts..."):
-                            out = MEDIA_DIR / f"voz_{re.sub(r'[^A-Za-z0-9_-]+','_',project_title)[:30]}_{datetime.now().strftime('%H%M%S')}.mp3"
+                            out = MEDIA_DIR / f"voz_{re.sub(r'[^A-Za-z0-9_-]+', '_', project_title)[:30]}_{datetime.now().strftime('%H%M%S')}.mp3"
                             ok, msg = generate_voice_audio(lyrics, VOICE_PROFILES[voice_type], out)
                             if ok:
                                 add_asset(vault, project_title, "audio_voz", str(out), {"genre": genres, "voice": voice_type, "bpm": bpm})
@@ -402,13 +384,12 @@ def repair_vault_assets(vault: dict[str, Any]) -> dict[str, Any]:
                                 st.error(msg)
             with c2:
                 if st.button("🖼 Generar Portada", use_container_width=True):
-                    out_img = MEDIA_DIR / f"portada_{re.sub(r'[^A-Za-z0-9_-]+','_',project_title)[:30]}_{datetime.now().strftime('%H%M%S')}.jpg"
+                    out_img = MEDIA_DIR / f"portada_{re.sub(r'[^A-Za-z0-9_-]+', '_', project_title)[:30]}_{datetime.now().strftime('%H%M%S')}.jpg"
                     generate_cover(project_title, "BASA Productions", ", ".join(genres[:2]) if genres else "Bachata", "Cine Epico / Hollywood Dorado", out_img)
                     add_asset(vault, project_title, "portada", str(out_img), {"genre": genres})
                     st.success(f"Portada creada: {out_img.name}")
                     st.image(str(out_img), width=320)
 
-    # --- TAB 2 CINE ---
     with tab2:
         st.subheader("🎬 Cine / Pelicula Completa")
         cc1, cc2 = st.columns(2)
@@ -442,7 +423,6 @@ def repair_vault_assets(vault: dict[str, Any]) -> dict[str, Any]:
                     st.warning(f"Poster listo, audio: {msg}")
                     st.image(str(poster), width=360)
 
-    # --- TAB 3 PUBLICAR ---
     with tab3:
         st.subheader("🚀 Publicar / Lanzamiento")
         pub_title = st.text_input("Titulo lanzamiento", value=ui["pub_title"], key="ui_pub_title")
@@ -476,49 +456,38 @@ def repair_vault_assets(vault: dict[str, Any]) -> dict[str, Any]:
             except Exception:
                 pass
 
-    # --- TAB 4 BOVEDA ---
     with tab4:
         st.subheader("📻 Boveda / Radio Autonoma 24/7")
-        st.write(f"**Estacion:** {vault.get('station_config', {}).get('station_name')} | **Auto-avance:** {vault.get('station_config', {}).get('auto_advance')}")
-        if not vault.get("assets"):
-            st.info("Aun no hay assets. Genere voz o portada en la pestaña 1 para llenar la boveda.")
+        station = vault.get("station_config", {})
+        st.write(f"**Estacion:** {station.get('station_name', 'BASA Radio')} | **Auto-avance:** {station.get('auto_advance', True)}")
+        assets_list = vault.get("assets", [])
+        if not assets_list:
+            st.info("Aun no hay assets. Genere voz o portada en la pestana 1 para llenar la boveda.")
         else:
-for a in reversed(vault.get("assets", [])[-20:]):
-    # FIX BASA: usar .get() para que nunca de KeyError con assets viejos
-    a_title = a.get("title", "Sin titulo") if isinstance(a, dict) else "Sin titulo"
-    a_kind = a.get("kind", "asset") if isinstance(a, dict) else "asset"
-    a_date = str(a.get("created_at", ""))[:16] if isinstance(a, dict) else ""
-    a_id = a.get("id", "no-id") if isinstance(a, dict) else "no-id"
-    a_file = a.get("file", "") if isinstance(a, dict) else ""
-
-    with st.expander(f"{a_date} - {a_title} [{a_kind}]"):
-        st.write(a)
-        p = Path(a_file)
-        if p.exists():
-            if p.suffix.lower() in [".mp3", ".wav"]:
-                st.audio(str(p))
-            elif p.suffix.lower() in [".jpg", ".jpeg", ".png"]:
-                st.image(str(p), width=300)
-            with open(p, "rb") as f:
-                st.download_button(f"⬇ Descargar {p.name}", f.read(), file_name=p.name, key=f"dl_{a_id}")
-        else:
-            st.warning(f"Archivo no encontrado: {a_file}")
-
+            for a in reversed(assets_list[-20:]):
+                a_title = a.get("title", "Sin titulo") if isinstance(a, dict) else "Sin titulo"
+                a_kind = a.get("kind", "asset") if isinstance(a, dict) else "asset"
+                a_date = str(a.get("created_at", ""))[:16] if isinstance(a, dict) else ""
+                a_id = a.get("id", "no-id") if isinstance(a, dict) else "no-id"
+                a_file = a.get("file", "") if isinstance(a, dict) else ""
+                with st.expander(f"{a_date} - {a_title} [{a_kind}]"):
                     st.write(a)
-                    p = Path(a.get("file", ""))
+                    p = Path(a_file)
                     if p.exists():
                         if p.suffix.lower() in [".mp3", ".wav"]:
                             st.audio(str(p))
                         elif p.suffix.lower() in [".jpg", ".jpeg", ".png"]:
                             st.image(str(p), width=300)
                         with open(p, "rb") as f:
-                            st.download_button(f"⬇ Descargar {p.name}", f.read(), file_name=p.name, key=f"dl_{a['id']}")
+                            st.download_button(f"Descargar {p.name}", f.read(), file_name=p.name, key=f"dl_{a_id}")
+                    else:
+                        st.warning(f"Archivo no encontrado: {a_file}")
         if st.button("🗑 Limpiar Boveda (Backup primero)"):
             save_vault(vault)
             st.success("Backup hecho en basa_vault_data/backups/. Para borrar, borre la carpeta manualmente.")
 
     st.divider()
-    st.caption("BASA Universal AI Studio v10 FULL - 100/100 - (c) Pedro Baldera - BASA Productions - Todos los derechos reservados - ONAPI / Copyright")
+    st.caption("BASA Universal AI Studio v10 FULL - 100/100 - (c) Pedro Baldera - BASA Productions - Todos los derechos reservados")
 
 if __name__ == "__main__":
     main()
