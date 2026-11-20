@@ -11,3 +11,4 @@ google-auth-httplib2
 Pillow
 audioop-lts
 edge-tts
+opencv-python-headless
