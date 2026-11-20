@@ -323,7 +323,24 @@ def export_project_zip(vault: dict[str, Any], title: str) -> Path:
 def main() -> None:
     init_dirs()
     vault = init_vault()
+    vault = repair_vault_assets(vault)
     users = load_users_vault()
+def repair_vault_assets(vault: dict[str, Any]) -> dict[str, Any]:
+    """Limpia assets viejos sin title/kind/created_at para que no den KeyError."""
+    cleaned = []
+    for a in vault.get("assets", []):
+        if not isinstance(a, dict):
+            continue
+        a.setdefault("id", str(uuid.uuid4())[:8])
+        a.setdefault("title", "Sin titulo")
+        a.setdefault("kind", "asset")
+        a.setdefault("file", "")
+        a.setdefault("created_at", datetime.now().isoformat())
+        a.setdefault("meta", {})
+        cleaned.append(a)
+    vault["assets"] = cleaned
+    return vault
+
     ui = load_autosave_state()
 
     st.title("⚡ BASA Universal AI Studio - Autonomo 100/100")
@@ -466,8 +483,27 @@ def main() -> None:
         if not vault.get("assets"):
             st.info("Aun no hay assets. Genere voz o portada en la pestaña 1 para llenar la boveda.")
         else:
-            for a in reversed(vault.get("assets", [])[-20:]):
-                with st.expander(f"{a['created_at'][:16]} - {a['title']} [{a['kind']}]"):
+for a in reversed(vault.get("assets", [])[-20:]):
+    # FIX BASA: usar .get() para que nunca de KeyError con assets viejos
+    a_title = a.get("title", "Sin titulo") if isinstance(a, dict) else "Sin titulo"
+    a_kind = a.get("kind", "asset") if isinstance(a, dict) else "asset"
+    a_date = str(a.get("created_at", ""))[:16] if isinstance(a, dict) else ""
+    a_id = a.get("id", "no-id") if isinstance(a, dict) else "no-id"
+    a_file = a.get("file", "") if isinstance(a, dict) else ""
+
+    with st.expander(f"{a_date} - {a_title} [{a_kind}]"):
+        st.write(a)
+        p = Path(a_file)
+        if p.exists():
+            if p.suffix.lower() in [".mp3", ".wav"]:
+                st.audio(str(p))
+            elif p.suffix.lower() in [".jpg", ".jpeg", ".png"]:
+                st.image(str(p), width=300)
+            with open(p, "rb") as f:
+                st.download_button(f"⬇ Descargar {p.name}", f.read(), file_name=p.name, key=f"dl_{a_id}")
+        else:
+            st.warning(f"Archivo no encontrado: {a_file}")
+
                     st.write(a)
                     p = Path(a.get("file", ""))
                     if p.exists():
